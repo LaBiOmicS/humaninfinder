@@ -423,3 +423,57 @@ def test_domain_without_locus_is_named_humanin_domain():
     # at a locus the previous behaviour is unchanged
     assert mdp_display_name("Humanin", False, pf15040_supported=True, at_locus=True) == "Humanin"
     assert mdp_display_name("Humanin", True, pf15040_supported=False, at_locus=True) == "Humanin"
+
+
+@pytest.mark.parametrize("cut", [2660, 2520])
+def test_circular_record_rotated_inside_a_locus_keeps_every_peptide(cut):
+    """A locus crossing the origin of a circular record must be read through it (A-2).
+
+    De novo mitogenome assemblies start anywhere. Before 1.0.0b1 the MT-RNR2 search was linear even
+    under ``--circular``: with the origin inside Humanin (cut 2660) Humanin vanished, and with it
+    inside SHLP1/SHLP4 (cut 2520) SHLP4 vanished and SHLP1 came out as a 13-aa ``Incomplete`` frame
+    that no genome encodes. Nothing in the output said so.
+    """
+    from humanin_finder.core import locus_gap_report
+
+    seq = _rcrs()
+    n = len(seq)
+    reference = {lc["name"]: lc for lc in locate_mdp_loci(seq, table=2, circular=True)}
+    rotated = seq[cut:] + seq[:cut]
+    loci = locate_mdp_loci(rotated, table=2, circular=True)
+
+    assert sorted(lc["name"] for lc in loci) == sorted(reference), "each peptide exactly once"
+    for lc in loci:
+        ref = reference[lc["name"]]
+        assert (lc["seq"], lc["status"], lc["strand"]) == (ref["seq"], ref["status"], ref["strand"])
+        # same locus, shifted by the rotation; a wrapped locus ends past the record length
+        assert lc["start"] == (ref["start"] - cut) % n
+        assert lc["end"] - lc["start"] == ref["end"] - ref["start"]
+        assert lc["circular_wrap"] == (lc["end"] > n)
+    assert any(lc["circular_wrap"] for lc in loci), "the cut must fall inside at least one locus"
+    assert locus_gap_report(rotated, circular=True) == []
+    # the SHLP route agrees
+    assert {a["name"] for a in annotate_shlps(rotated, circular=True)} == set(reference) - {"Humanin"}
+
+
+def test_circular_search_changes_nothing_when_no_locus_crosses_the_origin():
+    seq = _rcrs()
+    key = ("name", "seq", "status", "start", "end", "strand", "frame", "synteny_score", "locus_profile")
+    linear = [tuple(lc[k] for k in key) for lc in locate_mdp_loci(seq, table=2)]
+    circular = [tuple(lc[k] for k in key) for lc in locate_mdp_loci(seq, table=2, circular=True)]
+    assert circular == linear
+
+
+def test_cli_circular_wrap_is_written_and_split_in_bed(tmp_path):
+    seq = _rcrs()
+    fasta = tmp_path / "rot.fasta"
+    fasta.write_text(">rot mitochondrion\n" + seq[2660:] + seq[:2660] + "\n")
+    prefix = str(tmp_path / "rot")
+    result = CliRunner().invoke(main, ["predict", "-i", str(fasta), "-o", prefix, "-g", "2", "--circular"])
+    assert result.exit_code == 0, result.output
+    rows = {r["name"]: r for r in csv.DictReader(open(f"{prefix}_results.csv"))}
+    assert rows["Humanin"]["seq"] == "MAPRGFSCLLLLTSEIDLPVK"
+    assert rows["Humanin"]["circular_wrap"] == "True"
+    bed = [line.split("\t") for line in open(f"{prefix}_results.bed") if not line.startswith("#")]
+    humanin_blocks = [(int(b[1]), int(b[2])) for b in bed if b[3] == "Humanin_Complete"]
+    assert humanin_blocks == [(len(seq) - 28, len(seq)), (0, 38)]

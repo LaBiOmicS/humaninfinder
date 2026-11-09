@@ -678,8 +678,70 @@ def load_locus_profiles(profiles_path: str | None = None) -> dict[str, dict[str,
     return profiles
 
 
+def _circular_search_sequence(seq_str: str, profile_length: int, max_len: int) -> str:
+    """The record followed by its own first bases, so that a locus crossing the origin is contiguous.
+
+    The appended head is long enough to hold a whole profile hit beyond the origin plus the reading
+    frame read from it (``max_len`` codons and the local start window).
+    """
+    pad = 2 * profile_length + 3 * (max_len + 1 + LOCAL_START_WINDOW)
+    return seq_str + seq_str[: min(len(seq_str), pad)]
+
+
+def _circular_overlap(lo1: int, hi1: int, lo2: int, hi2: int, length: int) -> bool:
+    """Whether two 1-based inclusive spans overlap on a circle of ``length`` (spans may pass ``length``)."""
+    return any(calculate_overlap(lo1 - 1, hi1, lo2 - 1 + s, hi2 + s) > 0 for s in (-length, 0, length))
+
+
+def _profile_domains(
+    seq_str: str,
+    hmm: pyhmmer.plan7.HMM,
+    threshold: float,
+    cpus: int,
+    circular_length: int | None = None,
+) -> list[Any]:
+    """nhmmer domains of a locus profile at or above ``threshold``, in nhmmer's order.
+
+    With ``circular_length`` (the length of the record before ``_circular_search_sequence`` extended
+    it) two kinds of domain are dropped, so that every locus is reported once: domains lying wholly in
+    the appended head (copies of a domain already found in the record), and, on the same strand,
+    domains overlapping a higher-scoring one across the origin (the part of a locus cut at the origin
+    of the linear record, superseded by the whole locus read through it).
+    """
+    alphabet = pyhmmer.easel.Alphabet.dna()
+    target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(alphabet)
+    domains = [
+        domain
+        for top in pyhmmer.hmmer.nhmmer([hmm], [target], cpus=cpus, T=threshold, domT=threshold)
+        for hit in top
+        for domain in hit.domains
+        if domain.score >= threshold
+    ]
+    if circular_length is None:
+        return domains
+
+    def span(d: Any) -> tuple[int, int, int]:
+        a, b = d.alignment.target_from, d.alignment.target_to
+        return min(a, b), max(a, b), 1 if b >= a else -1
+
+    in_record = [d for d in domains if span(d)[0] <= circular_length]
+    kept: list[Any] = []
+    for d in sorted(in_record, key=lambda d: -float(d.score)):
+        lo, hi, step = span(d)
+        if not any(
+            step == span(k)[2] and _circular_overlap(lo, hi, *span(k)[:2], circular_length) for k in kept
+        ):
+            kept.append(d)
+    return [d for d in in_record if any(d is k for k in kept)]
+
+
 def _profile_positions(
-    seq_str: str, hmm: pyhmmer.plan7.HMM, states: dict[str, tuple[int, int]], threshold: float, cpus: int
+    seq_str: str,
+    hmm: pyhmmer.plan7.HMM,
+    states: dict[str, tuple[int, int]],
+    threshold: float,
+    cpus: int,
+    circular_length: int | None = None,
 ) -> list[tuple[float, str, int, int, float]]:
     """nhmmer hits of a locus profile mapped to peptide start codons.
 
@@ -691,34 +753,30 @@ def _profile_positions(
     A start-codon column that aligns to a gap in the target yields no position, because the codon
     itself is not in the record. ``locus_gap_report`` reports those cases separately, so that a
     peptide missing from the output can be told apart from a locus the genome does not have.
+
+    ``circular_length``: see ``_profile_domains``; coordinates stay those of ``seq_str``.
     """
-    alphabet = pyhmmer.easel.Alphabet.dna()
-    target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(alphabet)
     seq_len = len(seq_str)
     by_state = {state: [] for state, _ in states.values()}
     for name, (state, orientation) in states.items():
         by_state[state].append((name, orientation))
     positions = []
-    for top in pyhmmer.hmmer.nhmmer([hmm], [target], cpus=cpus, T=threshold, domT=threshold):
-        for hit in top:
-            for domain in hit.domains:
-                if domain.score < threshold:
-                    continue
-                aln = domain.alignment
-                density = float(domain.score) / (aln.hmm_to - aln.hmm_from + 1)
-                step = 1 if aln.target_to >= aln.target_from else -1
-                k, t = aln.hmm_from, aln.target_from
-                for h, c in zip(aln.hmm_sequence, aln.target_sequence, strict=True):
-                    if h != "." and k in by_state and c != "-":
-                        for name, orientation in by_state[k]:
-                            strand = step * orientation
-                            # 1-based forward coordinate of the start-codon base -> 0-based on its strand
-                            t_start = t - 1 if strand == 1 else seq_len - t
-                            positions.append((float(domain.score), name, strand, t_start, density))
-                    if h != ".":
-                        k += 1
-                    if c != "-":
-                        t += step
+    for domain in _profile_domains(seq_str, hmm, threshold, cpus, circular_length):
+        aln = domain.alignment
+        density = float(domain.score) / (aln.hmm_to - aln.hmm_from + 1)
+        step = 1 if aln.target_to >= aln.target_from else -1
+        k, t = aln.hmm_from, aln.target_from
+        for h, c in zip(aln.hmm_sequence, aln.target_sequence, strict=True):
+            if h != "." and k in by_state and c != "-":
+                for name, orientation in by_state[k]:
+                    strand = step * orientation
+                    # 1-based forward coordinate of the start-codon base -> 0-based on its strand
+                    t_start = t - 1 if strand == 1 else seq_len - t
+                    positions.append((float(domain.score), name, strand, t_start, density))
+            if h != ".":
+                k += 1
+            if c != "-":
+                t += step
     return positions
 
 
@@ -728,6 +786,7 @@ def locus_gap_report(
     min_score: float | None = None,
     profiles_path: str | Path | None = None,
     cpus: int = 1,
+    circular: bool = False,
 ) -> list[dict[str, Any]]:
     """Peptides whose start-codon column falls in a gap, with the length of that gap.
 
@@ -743,10 +802,12 @@ def locus_gap_report(
     Not a detection failure: with the codon outside the record there is no frame to read, and
     anchoring on a neighbouring base would fabricate a peptide out of frame. Across 343 primate
     mitogenomes this reports SHLP5 in 57 genomes (16.6%), all with gaps of 8-12 columns.
+
+    ``circular``: the record is a circular molecule; a locus crossing its origin is read through it
+    (see ``locate_mdp_loci``).
     """
     seq_str = str(dna_seq).upper()
-    profiles = load_locus_profiles(profiles_path)
-    alphabet = pyhmmer.easel.Alphabet.dna()
+    profiles = load_locus_profiles(str(profiles_path) if profiles_path else None)
     out: list[dict[str, Any]] = []
     for prof_name, prof in profiles.items():
         wanted = list(prof["peptides"]) if peptides is None else [p for p in peptides if p in prof["peptides"]]
@@ -754,34 +815,32 @@ def locus_gap_report(
             continue
         states = {n: prof["peptides"][n]["state"] for n in wanted}
         threshold = prof["evidence_bitscore"] if min_score is None else min_score
-        target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(alphabet)
-        for top in pyhmmer.hmmer.nhmmer([prof["hmm"]], [target], cpus=cpus, T=threshold, domT=threshold):
-            for hit in top:
-                for domain in hit.domains:
-                    if domain.score < threshold:
-                        continue
-                    aln = domain.alignment
-                    column: dict[int, str] = {}
-                    k = aln.hmm_from
-                    for h, c in zip(aln.hmm_sequence, aln.target_sequence, strict=True):
-                        if h != ".":
-                            column[k] = c
-                            k += 1
-                    for name, state in states.items():
-                        if column.get(state) != "-":
-                            continue
-                        run = 0
-                        while column.get(state + run) == "-":
-                            run += 1
-                        out.append(
-                            {
-                                "name": name,
-                                "locus_profile": prof_name,
-                                "synteny_score": round(float(domain.score), 4),
-                                "start_column": state,
-                                "gap_columns": run,
-                            }
-                        )
+        search = _circular_search_sequence(seq_str, prof["profile_length"], 60) if circular else seq_str
+        for domain in _profile_domains(
+            search, prof["hmm"], threshold, cpus, circular_length=len(seq_str) if circular else None
+        ):
+            aln = domain.alignment
+            column: dict[int, str] = {}
+            k = aln.hmm_from
+            for h, c in zip(aln.hmm_sequence, aln.target_sequence, strict=True):
+                if h != ".":
+                    column[k] = c
+                    k += 1
+            for name, state in states.items():
+                if column.get(state) != "-":
+                    continue
+                run = 0
+                while column.get(state + run) == "-":
+                    run += 1
+                out.append(
+                    {
+                        "name": name,
+                        "locus_profile": prof_name,
+                        "synteny_score": round(float(domain.score), 4),
+                        "start_column": state,
+                        "gap_columns": run,
+                    }
+                )
     return sorted(out, key=lambda d: (d["name"], d["locus_profile"]))
 
 
@@ -793,6 +852,7 @@ def locate_mdp_loci(
     min_score: float | None = None,
     max_len: int = 60,
     cpus: int = 1,
+    circular: bool = False,
 ) -> list[dict[str, Any]]:
     """Locate mitochondrial-derived peptide loci (Humanin, SHLP1-6) by their position in MT-RNR2.
 
@@ -809,30 +869,37 @@ def locate_mdp_loci(
     reaches the profile's ``vertebrate_min_density`` (calibrated between non-vertebrate controls and the
     most divergent vertebrate mitogenomes); profiles without that calibration (``Humanin_core``, whose
     density does not separate the groups) give False. See ``mdp_display_name``.
+
+    ``circular``: the record is a circular molecule (a mitogenome), so a locus crossing its origin is
+    read through it instead of being missed or reported cut at the end of the record. Such a locus
+    has ``circular_wrap`` True and, following the GFF3 convention for circular landmarks, ``start``
+    inside the record and ``end`` beyond its length. Every locus carries ``circular_wrap``.
     """
     seq_str = str(dna_seq).upper()
+    seq_len = len(seq_str)
     profiles = load_locus_profiles(str(profiles_path) if profiles_path else None)
     loci: list[dict[str, Any]] = []
     for prof_name, prof in profiles.items():
         peps = {n: p for n, p in prof["peptides"].items() if peptides is None or n in peptides}
-        if not peps or len(seq_str) < prof["profile_length"] // 4:
+        if not peps or seq_len < prof["profile_length"] // 4:
             continue
         threshold = prof["evidence_bitscore"] if min_score is None else min_score
         min_density = prof.get("vertebrate_min_density")
         states = {n: (p["state"], p["orientation"]) for n, p in peps.items()}
-        oriented = {1: seq_str}
+        search = _circular_search_sequence(seq_str, prof["profile_length"], max_len) if circular else seq_str
+        oriented = {1: search}
         for score, name, strand, t_start, density in _profile_positions(
-            seq_str, prof["hmm"], states, threshold, cpus
+            search, prof["hmm"], states, threshold, cpus, circular_length=seq_len if circular else None
         ):
             if strand not in oriented:
-                oriented[strand] = str(Seq(seq_str).reverse_complement())
+                oriented[strand] = str(Seq(search).reverse_complement())
             pep = peps[name]
             pep_table = pep["primary_translation_table"] or table
             locus = _read_locus_frame(
                 oriented[strand],
                 t_start,
                 strand,
-                len(seq_str),
+                len(search),
                 score,
                 pep["reference_orf"],
                 pep_table,
@@ -841,6 +908,14 @@ def locate_mdp_loci(
             )
             if locus is None:
                 continue
+            if circular:
+                # Back to the coordinates of the record; the frame as the linear search would number it
+                if locus["start"] >= seq_len:
+                    locus["start"] -= seq_len
+                    locus["end"] -= seq_len
+                o_start = locus["start"] if strand == 1 else seq_len - locus["end"]
+                locus["frame"] = o_start % 3
+            locus["circular_wrap"] = locus["end"] > seq_len
             if any(
                 prev["name"] == name
                 and prev["strand"] == strand
@@ -909,6 +984,7 @@ def locate_humanin_loci(
     max_len: int = 60,
     max_hits: int | None = None,
     cpus: int = 1,
+    circular: bool = False,
 ) -> list[dict[str, Any]]:
     """Locate Humanin loci by their position in MT-RNR2 and read the species' own frame at each one.
 
@@ -939,6 +1015,7 @@ def locate_humanin_loci(
         min_score=min_score,
         max_len=max_len,
         cpus=cpus,
+        circular=circular,
     )
     return loci[:max_hits] if max_hits else loci
 

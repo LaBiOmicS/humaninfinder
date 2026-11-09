@@ -31,6 +31,7 @@ def annotate_shlps(
     locus_start_offset: int = 0,
     min_score: float | None = None,
     profiles_path: str | Path | None = None,
+    circular: bool = False,
 ) -> list[dict[str, Any]]:
     """Locate SHLP1–6 by their MT-RNR2 position in a sequence (16S locus, mtDNA, contig or chromosome).
 
@@ -40,13 +41,14 @@ def annotate_shlps(
     follows rRNA conservation). The literature tier of the human peptide (``reference_evidence_tier``)
     is carried over only for a ``Complete`` frame identical to it. Loci that are not vertebrate-like
     (``locate_mdp_loci``) are named ``SHLP<n>_position``: they mark the homologous position only.
+    With ``circular`` a locus crossing the origin of the record is read through it (``circular_wrap``).
     """
     shlp_dict = load_shlp_references().get("shlp_peptides", {})
     if not shlp_dict:
         return []
     annotations = []
     for locus in locate_mdp_loci(
-        target_dna, peptides=list(shlp_dict), min_score=min_score, profiles_path=profiles_path
+        target_dna, peptides=list(shlp_dict), min_score=min_score, profiles_path=profiles_path, circular=circular
     ):
         meta = shlp_dict[locus["name"]]
         identical = locus["status"] == STATUS_COMPLETE and locus["seq"] == meta["peptide_sequence_canonical"]
@@ -60,6 +62,7 @@ def annotate_shlps(
                 "frame": locus["frame"],
                 "start": locus["start"] + locus_start_offset,
                 "end": locus["end"] + locus_start_offset,
+                "circular_wrap": locus["circular_wrap"],
                 "translation_table": locus["table"],
                 "synteny_score": locus["synteny_score"],
                 "start_offset_codons": locus["start_offset_codons"],

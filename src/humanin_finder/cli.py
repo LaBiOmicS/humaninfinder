@@ -458,6 +458,8 @@ def run_pipeline(
             full_seq = str(record.seq).upper()
             seq_len = len(full_seq)
             is_large_genome = seq_len > LARGE_SEQUENCE_BP
+            # Only mitogenome-sized records are read as circular molecules
+            record_circular = circular and not is_large_genome
             table_ids = requested_tables or [auto_genetic_code(record.description, seq_len)]
 
             if is_large_genome and not (enable_hmm or enable_synteny):
@@ -486,7 +488,7 @@ def run_pipeline(
                 if enable_synteny:
                     candidates.extend(
                         _make_candidate(rec_id, locus, t_id, suffix, "Synteny")
-                        for locus in locate_humanin_loci(full_seq, table=t_id)
+                        for locus in locate_humanin_loci(full_seq, table=t_id, circular=record_circular)
                     )
 
                 if is_large_genome:
@@ -555,9 +557,9 @@ def run_pipeline(
             if enable_shlp and enable_synteny:
                 # A start codon inside a deletion or an assembly gap yields no frame, so the peptide
                 # is absent from the table. Record that, or it cannot be told from a missing locus.
-                for gap in locus_gap_report(full_seq):
+                for gap in locus_gap_report(full_seq, circular=record_circular):
                     gap_rows.append({"sample_id": rec_id, **gap})
-                for sh in annotate_shlps(full_seq):
+                for sh in annotate_shlps(full_seq, circular=record_circular):
                     shlp_rows.append(
                         {
                             "sample_id": rec_id,
@@ -571,7 +573,7 @@ def run_pipeline(
                             "end_0based": sh["end"],
                             "start_1based": sh["start"] + 1,
                             "end_1based": sh["end"],
-                            "circular_wrap": False,
+                            "circular_wrap": sh["circular_wrap"],
                             "hmm_bitscore": None,
                             "hmm_evalue": None,
                             "hmm_supported": False,
@@ -619,7 +621,7 @@ def run_pipeline(
 
             for cand in selected:
                 cand["seq_length"] = seq_len
-                cand["seq_circular"] = circular and not is_large_genome
+                cand["seq_circular"] = record_circular
                 coords = f"{cand['start_1based']}-{cand['end_1based']}"
                 click.echo(
                     f"{rec_id:<22} | {cand.get('name', 'Humanin'):<22} | {cand['status']:<12} | "
