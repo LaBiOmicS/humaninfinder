@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use HumaninFinder, please cite the paper (preferred-citation) and, for the exact\n  version you ran, this software record."
+title: "HumaninFinder: homology-first location and annotation of Humanin and SHLP1-6"
+version: 1.0.0b1
+date-released: 2026-11-09
+license: MIT
+authors:
+  # Software authorship. The paper has five authors; adding the other four here is a decision for
+  # the release commit, and is why this list and preferred-citation.authors differ for now.
+  - family-names: Menegidio
+    given-names: Fabiano Bezerra
+    affiliation: "Universidade de Mogi das Cruzes"
+keywords:
+  - Humanin
+  - mitochondrial-derived peptides
+  - SHLP
+  - MT-RNR2
+  - NUMT
+  - bioinformatics
+repository-code: "https://github.com/LaBiOmicS/humanin-finder"
+
+# Without this block, anyone citing the software fails to cite the paper. The entry is deliberately
+# marked unpublished: fill in the full author list, journal, year and doi at submission and switch
+# the type to article. Never invent a DOI here -- a wrong one propagates into reference managers.
+preferred-citation:
+  type: unpublished
+  title: "HumaninFinder: homology-based location and annotation of Humanin and SHLP1-6 in
+    mitochondrial genomes and NUMTs"
+  authors:
+    - family-names: Menegidio
+      given-names: Fabiano Bezerra
+      affiliation: "Universidade de Mogi das Cruzes"
+  year: 2026
+  notes: "Manuscript in preparation. Replace with the published reference before tagging a
+    non-beta release."

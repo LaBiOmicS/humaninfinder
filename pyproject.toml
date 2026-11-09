@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "humanin-finder"
+version = "1.0.0b1"
+description = "Homology-based location and annotation of Humanin and SHLP1-6 mitochondrial-derived peptides in mitogenomes and nuclear genomes"
+# No `readme` key on purpose: there is no README yet, and naming a missing file makes the build
+# emit Description-Content-Type with an empty body, which renders as a blank PyPI page. Restore
+# `readme = "README.md"` in the same commit that adds the file.
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# Kept in step with CITATION.cff and .zenodo.json. Software authorship may legitimately differ
+# from the paper's five authors; adding the other four is a decision for the release commit.
+authors = [{ name = "Fabiano Bezerra Menegidio" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+# pandas was dropped in 1.0.0b1: it cost numpy plus tens of megabytes (and a slow conda solve) to
+# write two small CSV tables, which cli.write_csv now does with the standard library, byte for byte
+# identical to the published cohort tables.
+# Upper bounds are deliberate, not caution. The conservation controls project genomes with
+# Bio.Align.PairwiseAligner and take alignments[0]; which alignment comes first when several tie is
+# an implementation detail, so a major Biopython release could move published figures. pyhmmer
+# carries the bundled profile semantics. Both are pinned below the next major version and raised
+# only after tests/test_conservation_regression.py passes against the new release.
+dependencies = [
+  "biopython>=1.83,<2",
+  "click>=8.1.0,<9",
+  "pyhmmer>=0.12.0,<0.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/LaBiOmicS/humanin-finder"
+Repository = "https://github.com/LaBiOmicS/humanin-finder"
+Issues = "https://github.com/LaBiOmicS/humanin-finder/issues"
+Changelog = "https://github.com/LaBiOmicS/humanin-finder/releases"
+
+[project.scripts]
+humanin-finder = "humanin_finder.cli:main"
+humaninfinder = "humanin_finder.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+humanin_finder = ["data/*"]
+
+# sdist contents are governed by MANIFEST.in; see the comment there.
+[tool.setuptools]
+include-package-data = true
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.4.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra -v"

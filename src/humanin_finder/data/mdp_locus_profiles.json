@@ -1,0 +1,189 @@
+{
+  "created_at_utc": "2026-11-08T13:08:56+00:00",
+  "built_from": "reproducibility/04_benchmark/raw/profile_mitogenomes.fasta",
+  "reference": "rCRS NC_012920.1",
+  "profiles": {
+    "MT-RNR2": {
+      "file": "MT-RNR2.hmm",
+      "human_region_rcrs_0based": [
+        1670,
+        3229
+      ],
+      "profile_length": 1686,
+      "n_sequences": 92,
+      "peptides": {
+        "Humanin": {
+          "orientation": 1,
+          "reference_orf": "ATGGCTCCACGAGGGTTCAGCTGTCTCTTACTTTTAACCAGTGAAATTGACCTGCCCGTGAAGAGGCGGGCA",
+          "reference_codons": 24,
+          "primary_translation_table": null,
+          "state": 1032
+        },
+        "SHLP1": {
+          "orientation": -1,
+          "reference_orf": "ATGTGTCACTGGGCAGGCGGTGCCTCTAATACTGGTGATGCTAGAGGTGATGTTTTTGGTAAACAGGCGGGG",
+          "reference_codons": 24,
+          "primary_translation_table": 1,
+          "state": 958
+        },
+        "SHLP2": {
+          "orientation": -1,
+          "reference_orf": "ATGGGTGTTAAATTTTTTACTCTCTCTACAAGGTTTTTTCCTAGTGTCCAAAGAGCTGTTCCTCTTTGGACTAACAGT",
+          "reference_codons": 26,
+          "primary_translation_table": 1,
+          "state": 560
+        },
+        "SHLP3": {
+          "orientation": -1,
+          "reference_orf": "ATGCTTGGTTATAATTTTTCATCTTTCCCTTGCGGTACTATATCTATTGCGCCAGGTTTCAATTTCTATCGCCTATACTTTATTTGGGTAAATGGTTTGGCTAAGGTTGTCTGG",
+          "reference_codons": 38,
+          "primary_translation_table": 1,
+          "state": 211
+        },
+        "SHLP4": {
+          "orientation": -1,
+          "reference_orf": "ATGCTAGAGGTGATGTTTTTGGTAAACAGGCGGGGTAAGATTTGCCGAGTTCCTTTTACTTTTTTTAACCTTTCCTTA",
+          "reference_codons": 26,
+          "primary_translation_table": 1,
+          "state": 921
+        },
+        "SHLP5": {
+          "orientation": -1,
+          "reference_orf": "ATGTACTGCTCGGAGGTTGGGTTCTGCTCCGAGGTCGCCCCAACCGAAATTTTTAATGCAGGTTTGGTAGTT",
+          "reference_codons": 24,
+          "primary_translation_table": 2,
+          "state": 1253
+        },
+        "SHLP6": {
+          "orientation": 1,
+          "reference_orf": "ATGTTGGATCAGGACATCCCGATGGTGCAGCCGCTATTAAAGGTTCGTTTGTTCAACGAT",
+          "reference_codons": 20,
+          "primary_translation_table": 2,
+          "state": 1403
+        }
+      },
+      "min_bitscore": 40.0,
+      "evidence_bitscore": 140.0,
+      "evidence_rule": "paralog maximum + 10, rounded up to 10",
+      "null_max_bitscore": 0.0,
+      "n_null": 200,
+      "theoretical_bitscore_3p1Gb": 39.17,
+      "paralog_null": {
+        "bacterial_23S": {
+          "n_sequences_hit": 22765,
+          "n_excluded_as_contamination": 1,
+          "max_bitscore": 129.18,
+          "max_description": "Mycoplasma marinum strain PE scaffold_1, whole genome shotgun sequence"
+        },
+        "plastid_23S": {
+          "n_sequences_hit": 397,
+          "n_excluded_as_contamination": 0,
+          "max_bitscore": 101.7,
+          "max_description": "Plasmodium relictum strain SGS1 genome assembly, organelle: plastid:apicoplast"
+        },
+        "nuclear_28S": {
+          "n_sequences_hit": 1,
+          "n_excluded_as_contamination": 0,
+          "max_bitscore": 40.49,
+          "max_description": "human rDNA repeat U13369.1"
+        }
+      },
+      "weakest_true_profile_set_bitscore": 732.51,
+      "hmm_sha256": "67f40d890913c6324bb725957f738108c3f788eb8b287b5de3f8a26744419a4d",
+      "rounds": [
+        {
+          "round": 1,
+          "genomes_hit": 91,
+          "M": 1684,
+          "min_score": 733.533935546875,
+          "weakest": "NC_035638.1"
+        },
+        {
+          "round": 2,
+          "genomes_hit": 91,
+          "M": 1684,
+          "min_score": 734.2901611328125,
+          "weakest": "NC_035638.1"
+        },
+        {
+          "round": 3,
+          "genomes_hit": 91,
+          "M": 1686,
+          "min_score": 732.5117797851562,
+          "weakest": "NC_035638.1"
+        }
+      ],
+      "vertebrate_min_density": 0.587,
+      "vertebrate_density_rule": "midpoint between the densest non-vertebrate control locus (0.5735) and the least dense profile-set vertebrate locus (0.6011), bits per aligned profile column"
+    },
+    "Humanin_core": {
+      "file": "Humanin_core.hmm",
+      "human_region_rcrs_0based": [
+        2572,
+        2783
+      ],
+      "profile_length": 211,
+      "n_sequences": 92,
+      "peptides": {
+        "Humanin": {
+          "orientation": 1,
+          "reference_orf": "ATGGCTCCACGAGGGTTCAGCTGTCTCTTACTTTTAACCAGTGAAATTGACCTGCCCGTGAAGAGGCGGGCA",
+          "reference_codons": 24,
+          "primary_translation_table": null,
+          "state": 61
+        }
+      },
+      "min_bitscore": 40.0,
+      "evidence_bitscore": 105.3,
+      "evidence_rule": "midpoint between paralog maximum 101.8 and weakest true locus 108.8, because paralog maximum + 10 exceeds the weakest true locus",
+      "null_max_bitscore": 0.0,
+      "n_null": 200,
+      "theoretical_bitscore_3p1Gb": 39.17,
+      "paralog_null": {
+        "bacterial_23S": {
+          "n_sequences_hit": 4947,
+          "n_excluded_as_contamination": 1,
+          "max_bitscore": 101.76,
+          "max_description": "Wolbachia endosymbiont of Onchocerca ochengi complete genome, strain wOo"
+        },
+        "plastid_23S": {
+          "n_sequences_hit": 97,
+          "n_excluded_as_contamination": 0,
+          "max_bitscore": 80.25,
+          "max_description": "Rhododendron simsii isolate adult_tree_wgs_1 chloroplast, complete sequence, whole genome shotgun sequence"
+        },
+        "nuclear_28S": {
+          "n_sequences_hit": 1,
+          "n_excluded_as_contamination": 0,
+          "max_bitscore": 52.56,
+          "max_description": "human rDNA repeat U13369.1"
+        }
+      },
+      "weakest_true_profile_set_bitscore": 108.76,
+      "hmm_sha256": "23f418f70a9459e7fd87610eadb75bae8a00b56c48dc34cb7c43571debe3e19a",
+      "rounds": [
+        {
+          "round": 1,
+          "genomes_hit": 91,
+          "M": 211,
+          "min_score": 98.2517318725586,
+          "weakest": "NC_002807.1"
+        },
+        {
+          "round": 2,
+          "genomes_hit": 91,
+          "M": 211,
+          "min_score": 108.75108337402344,
+          "weakest": "NC_002807.1"
+        },
+        {
+          "round": 3,
+          "genomes_hit": 91,
+          "M": 211,
+          "min_score": 108.760498046875,
+          "weakest": "NC_002807.1"
+        }
+      ]
+    }
+  }
+}

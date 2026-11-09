@@ -1,0 +1,66 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core:
+    name: suite (python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install . pytest ruff
+      - run: ruff check src tests
+      - run: pytest
+
+  packaged:
+    # The working tree is not what users receive. This job builds the sdist and the wheel, then runs
+    # the suite from the *unpacked sdist* in a directory of its own, which is how Bioconda and any
+    # reviewer validates the package. Without it, a sdist missing examples/ or tests/__init__.py
+    # passes CI and fails for everyone else -- which is exactly what happened before 1.0.0b1.
+    name: suite from the built sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build pytest
+      - run: python -m build
+      - name: Unpack the sdist where the working tree cannot help it
+        run: |
+          mkdir -p /tmp/fromsdist
+          tar xzf dist/*.tar.gz -C /tmp/fromsdist --strip-components=1
+      - name: Install the built wheel and run the sdist's own suite
+        run: |
+          pip install dist/*.whl
+          cd /tmp/fromsdist
+          pytest -q
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/*
+
+  reproducibility:
+    # Guards the published conservation figures against a dependency bump. The 343-primate cohort is
+    # too large to ship, so this runs the frozen synthetic cohort; see
+    # tests/test_conservation_regression.py.
+    name: frozen conservation figures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install . pytest
+      - name: Record the exact dependency versions behind the frozen numbers
+        run: pip freeze
+      - run: pytest tests/test_conservation_regression.py -q

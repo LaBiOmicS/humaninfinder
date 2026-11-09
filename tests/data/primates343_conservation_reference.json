@@ -1,0 +1,83 @@
+{
+ "_cohort_sha256": "see analysis_primates/primates_343.fasta; set HUMANINFINDER_PRIMATES343 to its path",
+ "_produced_with": {
+  "biopython": "1.88",
+  "humanin_finder": "1.0.0b1",
+  "python": "3.12.14"
+ },
+ "_what": "Published conservation numbers for the 343-primate cohort, frozen so that a change in Biopython's pairwise tie-breaking or in this module cannot alter the paper's figures without a test failing.",
+ "by_frame": {
+  "peptide": {
+   "aa_identity": 0.8083418183454317,
+   "aa_invariant_codons": 4,
+   "codons": 21,
+   "pos3_share": 0.36605258239133825,
+   "pos_var": [
+    1.92,
+    2.4803,
+    2.5408
+   ],
+   "var_per_site": 0.11017620011054881
+  },
+  "shifted_1": {
+   "aa_identity": 0.7503977853645225,
+   "aa_invariant_codons": 5,
+   "codons": 20,
+   "pos3_share": 0.27661009779867,
+   "pos_var": [
+    2.4803,
+    2.5408,
+    1.92
+   ],
+   "var_per_site": 0.11017620011054881
+  },
+  "shifted_2": {
+   "aa_identity": 0.8375706272483932,
+   "aa_invariant_codons": 4,
+   "codons": 20,
+   "pos3_share": 0.3573373198099918,
+   "pos_var": [
+    2.5408,
+    1.92,
+    2.4803
+   ],
+   "var_per_site": 0.11017620011054881
+  }
+ },
+ "downstream_relaxation": {
+  "continuous_div": 0.14596273291925466,
+  "continuous_n": 322,
+  "with_stop_div": 0.14444444444444443,
+  "with_stop_n": 20
+ },
+ "genomes": 343,
+ "mode": "interspecies",
+ "motifs": {
+  "CLLL": {
+   "aa_identity": 0.9839650145772595,
+   "aa_identity_rank": 0.919921875,
+   "codons": 4,
+   "fully_invariant_windows": 16,
+   "invariant_fraction": 0.5,
+   "invariant_fraction_rank": 0.900390625,
+   "null_aa_identity_median": 0.7118347025527003,
+   "null_windows": 512
+  },
+  "ISEIDLPVK": {
+   "aa_identity": 0.8540313368455151,
+   "aa_identity_rank": 0.7948207171314741,
+   "codons": 9,
+   "fully_invariant_windows": 0,
+   "invariant_fraction": 0.1111111111111111,
+   "invariant_fraction_rank": 0.5278884462151394,
+   "null_aa_identity_median": 0.7034426776806473,
+   "null_windows": 502
+  }
+ },
+ "pos3_share_rank": 0.6179024716098864,
+ "positive_control": {
+  "in_frame": 0.8530411886429701,
+  "off_frame": 0.06265565789330474
+ },
+ "var_per_site_rank": 0.31462925851703405
+}

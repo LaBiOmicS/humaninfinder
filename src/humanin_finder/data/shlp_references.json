@@ -1,0 +1,97 @@
+{
+  "reference_genome": "NC_012920.1",
+  "source_literature": "Cobb LJ, Lee C, Xiao J, et al. Aging (Albany NY). 2016;8(4):796-809. PMID: 27070352",
+  "evidence_rules": {
+    "E0": "In silico prediction without experimental evidence",
+    "E1": "In silico with homologous conservation across clades",
+    "E2": "Transcriptional expression verified (RT-PCR/RNA-seq)",
+    "E3": "Protein/peptide detected via antibody/mass spectrometry",
+    "E4": "Exogenous biological activity and receptor signaling verified"
+  },
+  "shlp_peptides": {
+    "SHLP1": {
+      "peptide_sequence_canonical": "MCHWAGGASNTGDARGDVFGKQAG",
+      "peptide_length": 24,
+      "strand": -1,
+      "frame": 0,
+      "start_0based": 2487,
+      "end_0based": 2559,
+      "start_1based": 2488,
+      "end_1based": 2559,
+      "primary_translation_table": 1,
+      "mitochondrial_table_2_sequence": "MCHWAGGASNTGDA*GDVFGKQAG",
+      "has_mitochondrial_table_2_premature_stop": true,
+      "cobb_2016_evidence_level": "E3"
+    },
+    "SHLP2": {
+      "peptide_sequence_canonical": "MGVKFFTLSTRFFPSVQRAVPLWTNS",
+      "peptide_length": 26,
+      "strand": -1,
+      "frame": 1,
+      "start_0based": 2090,
+      "end_0based": 2168,
+      "start_1based": 2091,
+      "end_1based": 2168,
+      "primary_translation_table": 1,
+      "mitochondrial_table_2_sequence": "MGVKFFTLSTRFFPSVQ*AVPLWTNS",
+      "has_mitochondrial_table_2_premature_stop": true,
+      "cobb_2016_evidence_level": "E4"
+    },
+    "SHLP3": {
+      "peptide_sequence_canonical": "MLGYNFSSFPCGTISIAPGFNFYRLYFIWVNGLAKVVW",
+      "peptide_length": 38,
+      "strand": -1,
+      "frame": 2,
+      "start_0based": 1705,
+      "end_0based": 1819,
+      "start_1based": 1706,
+      "end_1based": 1819,
+      "primary_translation_table": 1,
+      "mitochondrial_table_2_sequence": "MLGYNFSSFPCGTMSIAPGFNFYRLYFIWVNGLAKVVW",
+      "has_mitochondrial_table_2_premature_stop": false,
+      "cobb_2016_evidence_level": "E4"
+    },
+    "SHLP4": {
+      "peptide_sequence_canonical": "MLEVMFLVNRRGKICRVPFTFFNLSL",
+      "peptide_length": 26,
+      "strand": -1,
+      "frame": 1,
+      "start_0based": 2444,
+      "end_0based": 2522,
+      "start_1based": 2445,
+      "end_1based": 2522,
+      "primary_translation_table": 1,
+      "mitochondrial_table_2_sequence": "MLEVMFLVN**GKICRVPFTFFNLSL",
+      "has_mitochondrial_table_2_premature_stop": true,
+      "cobb_2016_evidence_level": "E3"
+    },
+    "SHLP5": {
+      "peptide_sequence_canonical": "MYCSEVGFCSEVAPTEIFNAGLVV",
+      "peptide_length": 24,
+      "strand": -1,
+      "frame": 2,
+      "start_0based": 2782,
+      "end_0based": 2854,
+      "start_1based": 2783,
+      "end_1based": 2854,
+      "primary_translation_table": 2,
+      "mitochondrial_table_2_sequence": "MYCSEVGFCSEVAPTEIFNAGLVV",
+      "has_mitochondrial_table_2_premature_stop": false,
+      "cobb_2016_evidence_level": "E2"
+    },
+    "SHLP6": {
+      "peptide_sequence_canonical": "MLDQDIPMVQPLLKVRLFND",
+      "peptide_length": 20,
+      "strand": 1,
+      "frame": 1,
+      "start_0based": 2989,
+      "end_0based": 3049,
+      "start_1based": 2990,
+      "end_1based": 3049,
+      "primary_translation_table": 2,
+      "mitochondrial_table_2_sequence": "MLDQDIPMVQPLLKVRLFND",
+      "has_mitochondrial_table_2_premature_stop": false,
+      "cobb_2016_evidence_level": "E3"
+    }
+  }
+}

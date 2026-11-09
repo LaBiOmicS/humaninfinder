@@ -1,0 +1,30 @@
+{
+  "title": "HumaninFinder: homology-first location and annotation of Humanin and SHLP1-6",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Menegidio, Fabiano Bezerra",
+      "affiliation": "Universidade de Mogi das Cruzes"
+    }
+  ],
+  "keywords": [
+    "Humanin",
+    "mitochondrial-derived peptides",
+    "SHLP",
+    "MT-RNR2",
+    "NUMT"
+  ],
+  "description": "Locates Humanin and SHLP1-6 by their position in MT-RNR2 (multi-clade vertebrate profiles) in mitogenomes, contigs and nuclear assemblies, and reports each species' own reading frame with explicit in silico evidence.",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/LaBiOmicS/humanin-finder",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ],
+  "version": "1.0.0b1",
+  "publication_date": "2026-11-09",
+  "access_right": "open",
+  "notes": "Beta release accompanying a manuscript in preparation. The conservation controls' published figures are frozen in tests/test_conservation_regression.py; see the upper bounds on biopython and pyhmmer in pyproject.toml."
+}

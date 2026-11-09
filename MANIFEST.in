@@ -1,0 +1,10 @@
+# The sdist must carry everything the test suite needs, or `pip install sdist && pytest` fails for
+# anyone validating the package -- which is how Bioconda and reviewers check it.
+# tests/__init__.py matters specifically: tests/test_cli.py does `from tests.test_core import ...`.
+recursive-include examples *.fasta
+recursive-include tests *.py
+recursive-include tests/data *.json
+include recipe/meta.yaml
+include CITATION.cff
+include .zenodo.json
+recursive-include .github *.yml
