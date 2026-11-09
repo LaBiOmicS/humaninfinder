@@ -216,3 +216,41 @@ def test_dropped_genomes_are_counted_alongside_usable_ones(tmp_path, rcrs):
     assert host["genomes_used"] == 2
     assert host["genomes_dropped_low_coverage"] == 1
     assert "genomes dropped: 1" in cons.format_summary(rec)
+
+
+def test_projection_survives_an_uncountable_number_of_optimal_alignments(monkeypatch):
+    """Biopython raises OverflowError on len() when the optimal alignments exceed 2**63.
+
+    This happened on one genome of the 343-primate cohort; the projection only needs the first
+    alignment, so it must take it without ever counting them.
+    """
+
+    class _Aln:
+        aligned = (((0, 4),), ((2, 6),))
+        score = 8.0
+
+    class _Uncountable:
+        def __len__(self):
+            raise OverflowError("number of optimal alignments is larger than 9223372036854775807")
+
+        def __getitem__(self, i):
+            raise AssertionError("indexing is not needed for the first alignment")
+
+        def __iter__(self):
+            yield _Aln()
+
+    class _Aligner:
+        def align(self, ref, target):
+            return _Uncountable()
+
+    monkeypatch.setattr(cons, "_aligner", _Aligner())
+    assert cons._project("ACGT", "TTACGTTT") == ("ACGT", 8.0)
+
+
+def test_projection_of_an_unalignable_target_is_all_gaps(monkeypatch):
+    class _Aligner:
+        def align(self, ref, target):
+            return iter(())
+
+    monkeypatch.setattr(cons, "_aligner", _Aligner())
+    assert cons._project("ACGT", "ACGT") == ("----", 0.0)

@@ -106,10 +106,11 @@ def _project(ref: str, target: str) -> tuple[str, float]:
     out = ["-"] * len(ref)
     if not target or not any(c in "ACGT" for c in target):
         return "".join(out), 0.0
-    alignments = _aligner.align(ref, target)
-    if len(alignments) == 0:
+    # Take the first optimal alignment from the iterator: len() would count every optimal
+    # alignment, and on repetitive targets that count overflows a 64-bit int (OverflowError).
+    aln = next(iter(_aligner.align(ref, target)), None)
+    if aln is None:
         return "".join(out), 0.0
-    aln = alignments[0]
     for (r0, r1), (t0, t1) in zip(*aln.aligned, strict=True):
         out[r0:r1] = target[t0:t1]
     return "".join(out), aln.score
