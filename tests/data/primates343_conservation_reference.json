@@ -63,7 +63,7 @@
    "null_aa_identity_median": 0.7118347025527003,
    "null_windows": 512
   },
-  "ISEIDLPVK": {
+  "TSEIDLPVK": {
    "aa_identity": 0.8540313368455151,
    "aa_identity_rank": 0.7948207171314741,
    "codons": 9,

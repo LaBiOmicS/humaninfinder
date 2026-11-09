@@ -95,6 +95,13 @@ class ResourceLimitExceeded(Exception):
         self.code = code
 
 
+def open_fasta_text(path: str | Path):
+    """Open a plain or gzip-compressed FASTA file in text mode (gzip detected by its magic bytes)."""
+    with open(path, "rb") as handle:
+        is_gzip = handle.read(2) == b"\x1f\x8b"
+    return gzip.open(path, "rt") if is_gzip else open(path)
+
+
 def _issue(
     severity: Severity,
     code: str,

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import gzip
 import hashlib
 import json
 import logging
@@ -18,6 +17,7 @@ from Bio import SeqIO
 from . import __version__
 from .conservation import analyse_cohort, format_summary, write_report
 from .core import (
+    MITOCHONDRIAL_TABLES,
     STATUS_COMPLETE,
     STATUS_INTERRUPTED,
     calculate_overlap,
@@ -29,7 +29,7 @@ from .core import (
     mdp_display_name,
     run_hmm_search_pyhmmer,
 )
-from .fasta_lint import LintOptions, lint_fasta
+from .fasta_lint import LintOptions, lint_fasta, open_fasta_text
 from .shlp import annotate_shlps
 
 logger = logging.getLogger("humanin-finder")
@@ -80,13 +80,6 @@ STATUS_RANK = {STATUS_COMPLETE: 1.0, STATUS_INTERRUPTED: 0.5}
 
 def _fmt(value: float | None, spec: str, missing: str = "NA") -> str:
     return missing if value is None else format(value, spec)
-
-
-def _open_fasta_text(path: Path):
-    """Open a plain or gzip-compressed FASTA file in text mode (detected by magic bytes)."""
-    with open(path, "rb") as handle:
-        is_gzip = handle.read(2) == b"\x1f\x8b"
-    return gzip.open(path, "rt") if is_gzip else open(path)
 
 
 def _locus_score(r: dict[str, Any]) -> float | None:
@@ -213,7 +206,7 @@ def write_deterministic_outputs(results: list[dict[str, Any]], output_prefix: st
             f.write(f"##sequence-region {seqid} 1 {meta['length']}\n")
         for seqid, meta in landmarks.items():
             if meta["circular"]:
-                f.write(f"{seqid}\tHumaninFinder_v2\tregion\t1\t{meta['length']}\t.\t+\t.\tID={seqid};Is_circular=true\n")
+                f.write(f"{seqid}\tHumaninFinder\tregion\t1\t{meta['length']}\t.\t+\t.\tID={seqid};Is_circular=true\n")
         for r in results:
             strand_char = "+" if r.get("strand", 1) == 1 else "-"
             start_1 = int(r["start_1based"])
@@ -236,7 +229,7 @@ def write_deterministic_outputs(results: list[dict[str, Any]], output_prefix: st
             )
             # SO:0000236 ORF: coordinates span the reading frame (including the stop codon when complete)
             f.write(
-                f"{r['sample_id']}\tHumaninFinder_v2\tORF\t{start_1}\t{end_1}\t{_fmt(score, '.1f', '.')}"
+                f"{r['sample_id']}\tHumaninFinder\tORF\t{start_1}\t{end_1}\t{_fmt(score, '.1f', '.')}"
                 f"\t{strand_char}\t.\t{attr}\n"
             )
 
@@ -325,9 +318,7 @@ def parse_genetic_codes(table_arg: str | int | list[int]) -> list[int]:
             if val not in tables:
                 tables.append(val)
         except ValueError as err:
-            raise click.BadParameter(
-                f"Genetic code table must be an integer between 1 and 33, got: {part!r}"
-            ) from err
+            raise click.BadParameter(f"Genetic code table must be an integer between 1 and 33, got: {part!r}") from err
     return tables or [2]
 
 
@@ -452,7 +443,7 @@ def run_pipeline(
 
     gap_rows: list[dict[str, Any]] = []
 
-    with _open_fasta_text(fasta_path) as handle:
+    with open_fasta_text(fasta_path) as handle:
         for record in SeqIO.parse(handle, "fasta"):
             rec_id = str(record.id)
             full_seq = str(record.seq).upper()
@@ -559,7 +550,13 @@ def run_pipeline(
                 # is absent from the table. Record that, or it cannot be told from a missing locus.
                 for gap in locus_gap_report(full_seq, circular=record_circular):
                     gap_rows.append({"sample_id": rec_id, **gap})
-                for sh in annotate_shlps(full_seq, circular=record_circular):
+                # In a nuclear record SHLPs of mitochondrial primary context are read under the
+                # nuclear code: a NUMT copy is not translated by the mitochondrial machinery. A record
+                # is nuclear when it is large or when no requested code is mitochondrial (e.g. -g 1).
+                nuclear_codes = [t for t in table_ids if t not in MITOCHONDRIAL_TABLES]
+                is_nuclear = is_large_genome or len(nuclear_codes) == len(table_ids)
+                nuclear_table = (nuclear_codes or [1])[0] if is_nuclear else None
+                for sh in annotate_shlps(full_seq, circular=record_circular, nuclear_table=nuclear_table):
                     shlp_rows.append(
                         {
                             "sample_id": rec_id,
@@ -888,8 +885,16 @@ def setup():
     orphans = sorted(
         p.name
         for p in DATA_DIR.iterdir()
-        if p.is_file() and p.name not in {DEFAULT_HUMANIN_HMM.name, SHLP_REF_PATH.name, DEFAULT_REFERENCE.name,
-                                          "MT-RNR2.hmm", "Humanin_core.hmm", "mdp_locus_profiles.json"}
+        if p.is_file()
+        and p.name
+        not in {
+            DEFAULT_HUMANIN_HMM.name,
+            SHLP_REF_PATH.name,
+            DEFAULT_REFERENCE.name,
+            "MT-RNR2.hmm",
+            "Humanin_core.hmm",
+            "mdp_locus_profiles.json",
+        }
     )
     if orphans:
         click.secho(f"[!] Unexpected files in data/: {', '.join(orphans)}", fg="yellow")

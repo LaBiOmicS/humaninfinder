@@ -1,7 +1,7 @@
 """Numerical regression tests freezing the conservation numbers that the paper reports.
 
 The controls in ``humanin_finder.conservation`` project each genome onto the reference genes with
-``Bio.Align.PairwiseAligner`` and take ``alignments[0]``: when several alignments score equally, which
+``Bio.Align.PairwiseAligner`` and take the first optimal alignment: when several score equally, which
 one comes first is an implementation detail of Biopython. Everything downstream -- the codon-position
 share, the window's rank inside the 16S null, the motif ranks -- is computed from that projection.
 

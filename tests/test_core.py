@@ -99,4 +99,3 @@ def test_guided_evolutionary_rescue_pseudogene():
     r = rescued[0]
     assert "*" in r["seq"]
     assert r["status"] == "Interrupted"
-

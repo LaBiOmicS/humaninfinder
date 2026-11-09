@@ -6,9 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "humanin-finder"
 version = "1.0.0b1"
 description = "Homology-based location and annotation of Humanin and SHLP1-6 mitochondrial-derived peptides in mitogenomes and nuclear genomes"
-# No `readme` key on purpose: there is no README yet, and naming a missing file makes the build
-# emit Description-Content-Type with an empty body, which renders as a blank PyPI page. Restore
-# `readme = "README.md"` in the same commit that adds the file.
+readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 # Kept in step with CITATION.cff and .zenodo.json. Software authorship may legitimately differ
@@ -27,8 +25,8 @@ classifiers = [
 # write two small CSV tables, which cli.write_csv now does with the standard library, byte for byte
 # identical to the published cohort tables.
 # Upper bounds are deliberate, not caution. The conservation controls project genomes with
-# Bio.Align.PairwiseAligner and take alignments[0]; which alignment comes first when several tie is
-# an implementation detail, so a major Biopython release could move published figures. pyhmmer
+# Bio.Align.PairwiseAligner and take the first optimal alignment; which one comes first when several
+# tie is an implementation detail, so a major Biopython release could move published figures. pyhmmer
 # carries the bundled profile semantics. Both are pinned below the next major version and raised
 # only after tests/test_conservation_regression.py passes against the new release.
 dependencies = [

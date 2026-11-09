@@ -49,6 +49,8 @@ from Bio import SeqIO
 from Bio.Align import PairwiseAligner
 from Bio.Seq import Seq
 
+from .fasta_lint import open_fasta_text
+
 DATA_DIR = Path(__file__).resolve().parent / "data"
 DEFAULT_REFERENCE = DATA_DIR / "conservation_reference.fasta"
 
@@ -57,7 +59,7 @@ GENE_COORDS = {"MT-RNR2": (1671, 3229), "MT-CO1": (5904, 7445)}
 #: rCRS 1-based inclusive window of the human Humanin reading frame, inside MT-RNR2.
 HUMANIN_WINDOW = (2633, 2695)
 #: Sub-windows reported by the motif control, as 1-based inclusive codon numbers in the peptide.
-DEFAULT_MOTIFS = {"CLLL": (8, 11), "ISEIDLPVK": (13, 21)}
+DEFAULT_MOTIFS = {"CLLL": (8, 11), "TSEIDLPVK": (13, 21)}
 
 _MATCH, _MISMATCH, _OPEN, _EXTEND = 2, -3, -5, -2
 _MIN_COVERAGE = 0.8
@@ -245,9 +247,14 @@ def coding_evidence(
         "frame": frame,
         "by_frame": {("peptide" if f == frame else f"shifted_{(f - frame) % 3}"): by_frame[f] for f in range(3)},
         "null_windows": len(null_p3),
-        "pos3_share_rank": percentile_rank(target["pos3_share"], null_p3) if target["pos3_share"] else None,
+        # ``is not None``: a share or identity of exactly 0 is a measurement and must be ranked
+        "pos3_share_rank": (
+            percentile_rank(target["pos3_share"], null_p3) if target["pos3_share"] is not None else None
+        ),
         "null_pos3_share_median": statistics.median(null_p3) if null_p3 else None,
-        "aa_identity_rank": percentile_rank(target["aa_identity"], null_aa) if target["aa_identity"] else None,
+        "aa_identity_rank": (
+            percentile_rank(target["aa_identity"], null_aa) if target["aa_identity"] is not None else None
+        ),
         "null_aa_identity_median": statistics.median(null_aa) if null_aa else None,
         "var_per_site_rank": percentile_rank(target["var_per_site"], null_var),
         "codon_detail": [],
@@ -397,10 +404,11 @@ def analyse_cohort(
     if motifs is None:
         motifs = DEFAULT_MOTIFS
     items: list[tuple[str, str, bool]] = []
-    for i, rec in enumerate(SeqIO.parse(str(fasta_path), "fasta")):
-        if limit and i >= limit:
-            break
-        items.append((rec.id, str(rec.seq), population))
+    with open_fasta_text(fasta_path) as handle:
+        for i, rec in enumerate(SeqIO.parse(handle, "fasta")):
+            if limit and i >= limit:
+                break
+            items.append((rec.id, str(rec.seq), population))
     if not items:
         raise ValueError(f"no sequences in {fasta_path}")
 
@@ -423,11 +431,7 @@ def analyse_cohort(
     for gene_name, (gene_start, _end) in GENE_COORDS.items():
         ref = _ref[gene_name]
         min_cov = _MIN_COVERAGE * len(ref)
-        kept = {
-            gid: p[gene_name]
-            for gid, p in projected
-            if sum(c != "-" for c in p[gene_name]) >= min_cov
-        }
+        kept = {gid: p[gene_name] for gid, p in projected if sum(c != "-" for c in p[gene_name]) >= min_cov}
         dropped = len(projected) - len(kept)
         if not kept:
             # Every genome fell below the coverage floor: the cohort has nothing to measure here.
@@ -444,11 +448,9 @@ def analyse_cohort(
             entry["min_coverage"] = _MIN_COVERAGE
         if gene_name == host:
             entry["coding_evidence"] = coding_evidence(data, window, gene_start, motifs)
-            seg = motifs.get("ISEIDLPVK")
+            seg = motifs.get("TSEIDLPVK")
             if seg:
-                entry["downstream_relaxation"] = downstream_relaxation(
-                    ref, kept, window[0] - gene_start, seg
-                )
+                entry["downstream_relaxation"] = downstream_relaxation(ref, kept, window[0] - gene_start, seg)
         else:
             entry["positive_control"] = positive_control(data, window[1] - window[0] + 1)
         out["genes"][gene_name] = entry
@@ -481,9 +483,7 @@ def format_summary(record: dict[str, Any]) -> str:
     lines.append(f"genomes used: {host['genomes_used']} ({record['mode']})")
     if host.get("genomes_dropped_low_coverage"):
         cov = host.get("min_coverage", _MIN_COVERAGE)
-        lines.append(
-            f"genomes dropped: {host['genomes_dropped_low_coverage']} (below {cov:.0%} coverage of MT-RNR2)"
-        )
+        lines.append(f"genomes dropped: {host['genomes_dropped_low_coverage']} (below {cov:.0%} coverage of MT-RNR2)")
     lines.append("")
     lines.append(f"{'frame':<12} {'pos3_share':>11} {'aa_identity':>12} {'invariant':>10}")
     for name, st in ce["by_frame"].items():
@@ -523,7 +523,5 @@ def format_summary(record: dict[str, Any]) -> str:
             f"aa divergence {a['mean_aa_div_segment']:.3f} in {a['n']} genomes with an upstream stop "
             f"vs {b['mean_aa_div_segment']:.3f} in {b['n']} continuous"
         )
-        lines.append(
-            "  (stop-bearing genomes cluster in few lineages: report independent origins, not genome count)"
-        )
+        lines.append("  (stop-bearing genomes cluster in few lineages: report independent origins, not genome count)")
     return "\n".join(lines)

@@ -33,7 +33,7 @@
       "start_1based": 2091,
       "end_1based": 2168,
       "primary_translation_table": 1,
-      "mitochondrial_table_2_sequence": "MGVKFFTLSTRFFPSVQ*AVPLWTNS",
+      "mitochondrial_table_2_sequence": "MGVKFFTLST*FFPSVQ*AVPLWTNS",
       "has_mitochondrial_table_2_premature_stop": true,
       "cobb_2016_evidence_level": "E4"
     },
@@ -61,7 +61,7 @@
       "start_1based": 2445,
       "end_1based": 2522,
       "primary_translation_table": 1,
-      "mitochondrial_table_2_sequence": "MLEVMFLVN**GKICRVPFTFFNLSL",
+      "mitochondrial_table_2_sequence": "MLEVMFLVN*RGKICRVPFTFFNLSL",
       "has_mitochondrial_table_2_premature_stop": true,
       "cobb_2016_evidence_level": "E3"
     },

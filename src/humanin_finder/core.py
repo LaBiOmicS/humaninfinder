@@ -271,12 +271,8 @@ def _search_chunk_pyhmmer(
 
             # 1. Full-frame query
             q_name = f"s{strand}_f{frame}_full"
-            easel_seqs.append(
-                pyhmmer.easel.TextSequence(name=q_name.encode("utf-8"), sequence=pep).digitize(alphabet)
-            )
-            query_meta.append(
-                {"strand": strand, "frame": frame, "offset": 0, "pep": pep, "name": q_name}
-            )
+            easel_seqs.append(pyhmmer.easel.TextSequence(name=q_name.encode("utf-8"), sequence=pep).digitize(alphabet))
+            query_meta.append({"strand": strand, "frame": frame, "offset": 0, "pep": pep, "name": q_name})
 
             # 2. Overlapping 35-aa windows (stride 12) to detect pseudogenes with internal stops
             if len(pep) > 30:
@@ -286,9 +282,7 @@ def _search_chunk_pyhmmer(
                     easel_seqs.append(
                         pyhmmer.easel.TextSequence(name=q_name.encode("utf-8"), sequence=chunk).digitize(alphabet)
                     )
-                    query_meta.append(
-                        {"strand": strand, "frame": frame, "offset": w_idx, "pep": pep, "name": q_name}
-                    )
+                    query_meta.append({"strand": strand, "frame": frame, "offset": w_idx, "pep": pep, "name": q_name})
 
     if not easel_seqs:
         return []
@@ -338,7 +332,10 @@ def _search_chunk_pyhmmer(
                         "strand": strand,
                         "frame": frame,
                         "score": float(domain.score),
-                        "e_value": float(domain.i_evalue),
+                        # E-value of this one comparison (Z = 1), as ``score_peptide_hmm`` reports it.
+                        # ``i_evalue`` scales with the number of frame windows searched, i.e. with the
+                        # record length, and so could not be compared between records.
+                        "e_value": float(domain.pvalue),
                         "c_evalue": float(domain.c_evalue),
                         "aa_start": ali_from,
                         "aa_end": ali_to,
@@ -381,9 +378,7 @@ def run_hmm_search_pyhmmer(
     raw_hits: list[dict[str, Any]] = []
 
     if seq_len <= chunk_size:
-        raw_hits = _search_chunk_pyhmmer(
-            seq_str, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold
-        )
+        raw_hits = _search_chunk_pyhmmer(seq_str, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold)
     else:
         step = chunk_size - chunk_overlap
         for c_start in range(0, seq_len, step):
@@ -391,9 +386,7 @@ def run_hmm_search_pyhmmer(
             chunk_nuc = seq_str[c_start:c_end]
             if len(chunk_nuc) < 30:
                 continue
-            c_hits = _search_chunk_pyhmmer(
-                chunk_nuc, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold
-            )
+            c_hits = _search_chunk_pyhmmer(chunk_nuc, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold)
             for h in c_hits:
                 h["dna_start"] += c_start
                 h["dna_end"] += c_start
@@ -728,9 +721,7 @@ def _profile_domains(
     kept: list[Any] = []
     for d in sorted(in_record, key=lambda d: -float(d.score)):
         lo, hi, step = span(d)
-        if not any(
-            step == span(k)[2] and _circular_overlap(lo, hi, *span(k)[:2], circular_length) for k in kept
-        ):
+        if not any(step == span(k)[2] and _circular_overlap(lo, hi, *span(k)[:2], circular_length) for k in kept):
             kept.append(d)
     return [d for d in in_record if any(d is k for k in kept)]
 
@@ -853,6 +844,7 @@ def locate_mdp_loci(
     max_len: int = 60,
     cpus: int = 1,
     circular: bool = False,
+    nuclear_table: int | None = None,
 ) -> list[dict[str, Any]]:
     """Locate mitochondrial-derived peptide loci (Humanin, SHLP1-6) by their position in MT-RNR2.
 
@@ -874,6 +866,10 @@ def locate_mdp_loci(
     read through it instead of being missed or reported cut at the end of the record. Such a locus
     has ``circular_wrap`` True and, following the GFF3 convention for circular landmarks, ``start``
     inside the record and ``end`` beyond its length. Every locus carries ``circular_wrap``.
+
+    ``nuclear_table``: the record is nuclear (a NUMT-bearing contig or chromosome). A peptide whose
+    primary translation context is mitochondrial (SHLP5, SHLP6) cannot be made there by the
+    mitochondrial machinery, so it is read under this cytosolic code instead.
     """
     seq_str = str(dna_seq).upper()
     seq_len = len(seq_str)
@@ -895,6 +891,8 @@ def locate_mdp_loci(
                 oriented[strand] = str(Seq(search).reverse_complement())
             pep = peps[name]
             pep_table = pep["primary_translation_table"] or table
+            if nuclear_table is not None and int(pep_table) in MITOCHONDRIAL_TABLES:
+                pep_table = nuclear_table
             locus = _read_locus_frame(
                 oriented[strand],
                 t_start,

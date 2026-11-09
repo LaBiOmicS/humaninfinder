@@ -63,7 +63,7 @@ def test_write_deterministic_outputs(tmp_path):
 
     with open(gff3_file) as f:
         gff_lines = f.readlines()
-    assert any("HumaninFinder_v2\tORF" in line for line in gff_lines)
+    assert any("HumaninFinder\tORF" in line for line in gff_lines)
 
     with open(bed_file) as f:
         bed_lines = f.readlines()
@@ -117,8 +117,6 @@ def test_cli_large_genome_locus_zoom(tmp_path):
     # No 16S rRNA context: the PF15040 domain holds but the position does not, so the frame is
     # named Humanin_domain rather than Humanin (see core.mdp_display_name)
     assert "Humanin_domain" in result.output
-
-
 
 
 def test_write_csv_keeps_integer_columns_integer(tmp_path):

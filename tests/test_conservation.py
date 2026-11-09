@@ -140,7 +140,7 @@ def test_motif_rank_reports_equal_length_windows(tmp_path, rcrs):
     rec = cons.analyse_cohort(fasta)
     motifs = rec["genes"]["MT-RNR2"]["coding_evidence"]["motifs"]
     assert motifs["CLLL"]["codons"] == 4
-    assert motifs["ISEIDLPVK"]["codons"] == 9
+    assert motifs["TSEIDLPVK"]["codons"] == 9
 
 
 def test_report_and_summary_round_trip(tmp_path, rcrs):
@@ -254,3 +254,41 @@ def test_projection_of_an_unalignable_target_is_all_gaps(monkeypatch):
 
     monkeypatch.setattr(cons, "_aligner", _Aligner())
     assert cons._project("ACGT", "ACGT") == ("----", 0.0)
+
+
+def test_a_zero_statistic_is_ranked_not_dropped():
+    """pos3_share of exactly 0 is a measurement (no variation on third positions) and must get a rank.
+
+    A truthiness test once turned it into ``None``, as if the window had not been measured.
+    """
+    import random as _random
+
+    rng = _random.Random(11)
+    ref = "".join(rng.choice("ACGT") for _ in range(300))
+    start, width = 60, 63  # window in frame 0 of the gene
+
+    def mutate(seq, positions):
+        s = list(seq)
+        for p in positions:
+            s[p] = next(b for b in "ACGT" if b != s[p])
+        return "".join(s)
+
+    outside = [p for p in range(300) if not start <= p < start + width]
+    projections = [
+        mutate(ref, [start + 3 * k for k in range(0, 21, 2)]),  # first codon positions only
+        mutate(ref, rng.sample(outside, 40)),
+    ]
+    gene = cons.GeneData.build(ref, projections, population=False)
+    ce = cons.coding_evidence(gene, (start + 1, start + width), 1)
+    assert ce["by_frame"]["peptide"]["pos3_share"] == 0.0
+    assert ce["pos3_share_rank"] is not None and 0.0 <= ce["pos3_share_rank"] <= 1.0
+
+
+def test_cohort_can_be_gzip_compressed(tmp_path, rcrs):
+    import gzip as _gzip
+
+    plain, packed = tmp_path / "c.fasta", tmp_path / "c.fasta.gz"
+    plain.write_text(f">a\n{rcrs}\n>b\n{rcrs}\n")
+    with _gzip.open(packed, "wt") as fh:
+        fh.write(plain.read_text())
+    assert cons.analyse_cohort(packed) == {**cons.analyse_cohort(plain), "input": str(packed)}

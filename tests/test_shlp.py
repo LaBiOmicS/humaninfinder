@@ -40,3 +40,23 @@ def test_annotate_shlps_on_reverse_complemented_record():
     for name, a in fwd.items():
         assert rev[name]["strand"] == -a["strand"] and rev[name]["seq"] == a["seq"]
         assert (len(full_seq) - rev[name]["end"], len(full_seq) - rev[name]["start"]) == (a["start"], a["end"])
+
+
+def test_shipped_table_2_readings_are_the_translation_of_the_reference_orfs():
+    """The descriptive Table 2 fields of shlp_references.json must be what the code would translate.
+
+    Until 1.0.0b1 SHLP2 and SHLP4 carried hand-written Table 2 readings that disagreed with the
+    actual translation of their reference ORFs (AGA/AGG are stops under the vertebrate mitochondrial code).
+    """
+    from Bio.Seq import Seq
+
+    from humanin_finder.core import load_locus_profiles
+
+    orfs = load_locus_profiles()["MT-RNR2"]["peptides"]
+    for name, meta in load_shlp_references()["shlp_peptides"].items():
+        orf = orfs[name]["reference_orf"]
+        t1, t2 = str(Seq(orf).translate(table=1)), str(Seq(orf).translate(table=2))
+        primary = t1 if meta["primary_translation_table"] == 1 else t2
+        assert meta["peptide_sequence_canonical"] == primary, name
+        assert meta["mitochondrial_table_2_sequence"] == t2, name
+        assert meta["has_mitochondrial_table_2_premature_stop"] == ("*" in t2), name

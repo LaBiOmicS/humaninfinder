@@ -203,9 +203,7 @@ def test_interrupted_frames_are_reported_by_hmm_support(tmp_path):
     fa = tmp_path / "pseudo.fasta"
     fa.write_text(">pseudo\n" + _random_dna(300, 8) + pseudo + _random_dna(300, 9) + "\n")
     out = tmp_path / "pseudo"
-    result = CliRunner().invoke(
-        main, ["predict", "-i", str(fa), "-o", str(out), "-g", "1", "--all-candidates"]
-    )
+    result = CliRunner().invoke(main, ["predict", "-i", str(fa), "-o", str(out), "-g", "1", "--all-candidates"])
     assert result.exit_code == 0, result.output
     rows = _read_csv(f"{out}_results.csv")
     interrupted = [r for r in rows if r["status"] == "Interrupted"]
@@ -410,7 +408,6 @@ def test_gapped_start_codon_is_reported_as_a_gap_not_as_a_peptide():
     assert {"SHLP1", "SHLP2", "SHLP3", "SHLP4", "SHLP5", "SHLP6"} <= names
 
 
-
 def test_domain_without_locus_is_named_humanin_domain():
     """PF15040 at the gathering threshold outside any MT-RNR2 locus is not plain ``Humanin``.
 
@@ -477,3 +474,64 @@ def test_cli_circular_wrap_is_written_and_split_in_bed(tmp_path):
     bed = [line.split("\t") for line in open(f"{prefix}_results.bed") if not line.startswith("#")]
     humanin_blocks = [(int(b[1]), int(b[2])) for b in bed if b[3] == "Humanin_Complete"]
     assert humanin_blocks == [(len(seq) - 28, len(seq)), (0, 38)]
+
+
+def test_pf15040_evalue_does_not_depend_on_record_length():
+    """``hmm_evalue`` is the E-value of one comparison, so the same domain scores the same anywhere.
+
+    It used to be HMMER's i-Evalue over every frame window searched, which grows with the record:
+    the Humanin domain of the rCRS got a different E-value once the record was longer.
+    """
+    from humanin_finder.core import run_hmm_search_pyhmmer
+
+    seq = _rcrs()
+    longer = seq + _random_dna(30_000, seed=7)
+
+    def humanin_hit(s):
+        return next(h for h in run_hmm_search_pyhmmer(s, table=1) if h["dna_start"] <= 2632 < h["dna_end"])
+
+    short, long_ = humanin_hit(seq), humanin_hit(longer)
+    assert short["score"] == long_["score"]
+    assert short["e_value"] == pytest.approx(long_["e_value"], rel=1e-9)
+
+
+def test_numt_reads_mitochondrial_context_shlps_under_the_nuclear_code(tmp_path):
+    """In a nuclear record SHLP5/SHLP6 are read under the nuclear code, not under Table 2.
+
+    A NUMT copy is not translated by the mitochondrial machinery. A TGA placed in the SHLP6 frame
+    reads as W under Table 2 and as a stop under Table 1, which tells the two readings apart.
+    """
+    seq = _rcrs()
+    numt = seq[1500:3400]
+    shlp6 = locate_mdp_loci(seq, peptides=["SHLP6"])[0]
+    pos = shlp6["start"] - 1500 + 3 * 5  # sixth codon of SHLP6 (forward strand)
+    numt = numt[:pos] + "TGA" + numt[pos + 3 :]
+
+    mito = {lc["name"]: lc for lc in locate_mdp_loci(numt, peptides=["SHLP5", "SHLP6"])}
+    nuclear = {lc["name"]: lc for lc in locate_mdp_loci(numt, peptides=["SHLP5", "SHLP6"], nuclear_table=1)}
+    assert mito["SHLP6"]["table"] == 2 and "*" not in mito["SHLP6"]["seq"]
+    assert nuclear["SHLP6"]["table"] == 1 and nuclear["SHLP6"]["seq"] != mito["SHLP6"]["seq"]
+    assert nuclear["SHLP5"]["table"] == 1
+
+    chrom = _random_dna(30_000, seed=3) + numt + _random_dna(30_000, seed=4)
+    fasta = tmp_path / "chr.fasta"
+    fasta.write_text(">chrN synthetic\n" + chrom + "\n")
+    prefix = str(tmp_path / "chr")
+    result = CliRunner().invoke(main, ["scan", "-i", str(fasta), "-o", prefix])
+    assert result.exit_code == 0, result.output
+    codes = {r["name"]: r["genetic_code"] for r in csv.DictReader(open(f"{prefix}_results.csv"))}
+    assert codes["SHLP5"] == codes["SHLP6"] == "1"
+
+
+def test_short_record_read_only_under_the_nuclear_code_is_nuclear(tmp_path):
+    """``-g 1`` on a short contig declares it nuclear, so SHLP5/SHLP6 follow the nuclear code too."""
+    fasta = tmp_path / "contig.fasta"
+    fasta.write_text(">contig short NUMT contig\n" + _rcrs()[1500:3400] + "\n")
+    codes = {}
+    for table in ("1", "2"):
+        prefix = str(tmp_path / f"t{table}")
+        result = CliRunner().invoke(main, ["predict", "-i", str(fasta), "-o", prefix, "-g", table])
+        assert result.exit_code == 0, result.output
+        codes[table] = {r["name"]: r["genetic_code"] for r in csv.DictReader(open(f"{prefix}_results.csv"))}
+    assert codes["1"]["SHLP5"] == codes["1"]["SHLP6"] == "1"
+    assert codes["2"]["SHLP5"] == codes["2"]["SHLP6"] == "2"

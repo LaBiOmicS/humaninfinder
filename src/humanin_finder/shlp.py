@@ -32,6 +32,7 @@ def annotate_shlps(
     min_score: float | None = None,
     profiles_path: str | Path | None = None,
     circular: bool = False,
+    nuclear_table: int | None = None,
 ) -> list[dict[str, Any]]:
     """Locate SHLP1–6 by their MT-RNR2 position in a sequence (16S locus, mtDNA, contig or chromosome).
 
@@ -42,13 +43,20 @@ def annotate_shlps(
     is carried over only for a ``Complete`` frame identical to it. Loci that are not vertebrate-like
     (``locate_mdp_loci``) are named ``SHLP<n>_position``: they mark the homologous position only.
     With ``circular`` a locus crossing the origin of the record is read through it (``circular_wrap``).
+    With ``nuclear_table`` the record is nuclear and SHLPs whose primary context is mitochondrial are
+    read under that code (``locate_mdp_loci``).
     """
     shlp_dict = load_shlp_references().get("shlp_peptides", {})
     if not shlp_dict:
         return []
     annotations = []
     for locus in locate_mdp_loci(
-        target_dna, peptides=list(shlp_dict), min_score=min_score, profiles_path=profiles_path, circular=circular
+        target_dna,
+        peptides=list(shlp_dict),
+        min_score=min_score,
+        profiles_path=profiles_path,
+        circular=circular,
+        nuclear_table=nuclear_table,
     ):
         meta = shlp_dict[locus["name"]]
         identical = locus["status"] == STATUS_COMPLETE and locus["seq"] == meta["peptide_sequence_canonical"]

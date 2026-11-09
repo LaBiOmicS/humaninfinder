@@ -27,10 +27,10 @@ requirements:
     - setuptools >=68
   run:
     - python >=3.10
-    - biopython >=1.83
-    - click >=8.1.0
-    - pandas >=2.2.0
-    - pyhmmer >=0.12.0
+    # Same bounds as pyproject.toml: the published conservation figures depend on them
+    - biopython >=1.83,<2
+    - click >=8.1.0,<9
+    - pyhmmer >=0.12.0,<0.13
 
 test:
   # Not just --help: a functional run on the bundled rCRS, checking that the package finds the
