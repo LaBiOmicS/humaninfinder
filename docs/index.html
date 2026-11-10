@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HumaninFinder</title>
+<meta name="description" content="HumaninFinder locates and annotates Humanin and SHLP1-6, the mitochondrial-derived peptides encoded in MT-RNR2, in mitogenomes, contigs and nuclear assemblies.">
+<meta property="og:title" content="HumaninFinder">
+<meta property="og:description" content="Homology-based location and annotation of Humanin and SHLP1-6 in mitogenomes, contigs and nuclear assemblies.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://labiomics.github.io/humaninfinder/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Crect x='5' y='14' width='22' height='4' rx='2' fill='%23fff'/%3E%3Crect x='18' y='8' width='5' height='4' rx='1' fill='%23fde68a'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #fbfbf9;
+  --surface: #ffffff;
+  --surface-2: #f2f4f3;
+  --text: #17201e;
+  --muted: #55615e;
+  --border: #dde3e1;
+  --accent: #0f766e;
+  --accent-strong: #0b5a54;
+  --accent-soft: #e3f2ef;
+  --plus: #0f766e;
+  --minus: #b45309;
+  --minus-soft: #fdf1e3;
+  --gene: #c9d3d0;
+  --code-bg: #0f1716;
+  --code-text: #e6ece9;
+  --code-muted: #8fa09b;
+  --warn-bg: #fff7e6;
+  --warn-border: #f0c36b;
+  --radius: 12px;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1413;
+    --surface: #151d1c;
+    --surface-2: #1b2524;
+    --text: #e6ece9;
+    --muted: #9db0ab;
+    --border: #2a3735;
+    --accent: #2dd4bf;
+    --accent-strong: #5eead4;
+    --accent-soft: #11302c;
+    --plus: #2dd4bf;
+    --minus: #f59e0b;
+    --minus-soft: #33240d;
+    --gene: #3a4a47;
+    --code-bg: #0a0f0e;
+    --warn-bg: #2a2110;
+    --warn-border: #8a6a24;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1413;
+  --surface: #151d1c;
+  --surface-2: #1b2524;
+  --text: #e6ece9;
+  --muted: #9db0ab;
+  --border: #2a3735;
+  --accent: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-soft: #11302c;
+  --plus: #2dd4bf;
+  --minus: #f59e0b;
+  --minus-soft: #33240d;
+  --gene: #3a4a47;
+  --code-bg: #0a0f0e;
+  --warn-bg: #2a2110;
+  --warn-border: #8a6a24;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--accent-strong); }
+code, pre, .mono { font-family: var(--mono); }
+code { font-size: .9em; background: var(--surface-2); padding: .1em .35em; border-radius: 5px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+/* Navigation */
+header.nav {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+header.nav .wrap { display: flex; align-items: center; gap: 16px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); text-decoration: none; letter-spacing: -.01em; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.nav-links { display: flex; gap: 18px; margin-left: auto; align-items: center; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: .93rem; }
+.nav-links a:hover { color: var(--text); }
+.nav-links .gh { color: var(--text); font-weight: 600; }
+@media (max-width: 760px) { .nav-links a.opt { display: none; } }
+
+/* Hero */
+.hero { padding: 72px 0 40px; }
+.eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: .82rem; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: 4px 10px; border-radius: 999px; }
+.hero h1 { font-size: clamp(2.2rem, 5.5vw, 3.6rem); line-height: 1.08; letter-spacing: -.03em; margin: 18px 0 16px; }
+.hero h1 span { color: var(--accent); }
+.lede { font-size: clamp(1.05rem, 2.2vw, 1.25rem); color: var(--muted); max-width: 760px; margin: 0 0 28px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+.btn:hover { border-color: var(--accent); color: var(--text); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #06201d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #06201d; } }
+.btn.primary:hover { background: var(--accent-strong); color: #fff; }
+.install-line { display: flex; align-items: center; gap: 12px; max-width: 560px; background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 10px 10px 10px 16px; font-family: var(--mono); font-size: .95rem; }
+.install-line .prompt { color: var(--code-muted); user-select: none; }
+.install-line code { background: none; padding: 0; color: inherit; flex: 1; overflow-x: auto; white-space: nowrap; }
+
+/* Sections */
+section { padding: 56px 0; border-top: 1px solid var(--border); }
+section h2 { font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02em; margin: 0 0 8px; }
+.section-lede { color: var(--muted); max-width: 760px; margin: 0 0 28px; }
+h3 { font-size: 1.08rem; margin: 0 0 6px; }
+
+.grid { display: grid; gap: 16px; }
+.grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.card p { margin: 0; color: var(--muted); font-size: .96rem; }
+.card .icon { width: 36px; height: 36px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin-bottom: 12px; }
+.card .icon svg { width: 20px; height: 20px; }
+
+.callout { background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--radius); padding: 14px 18px; margin: 24px 0 0; font-size: .96rem; }
+.callout strong { display: block; margin-bottom: 2px; }
+
+/* Gene map */
+.genemap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.genemap .scroll { overflow-x: auto; }
+.genemap svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.genemap .legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: .88rem; color: var(--muted); margin-top: 10px; }
+.swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface-2); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.seq { font-family: var(--mono); font-size: .86rem; word-break: break-all; min-width: 220px; }
+td.nowrap { white-space: nowrap; }
+.strand { font-weight: 700; }
+.strand.plus { color: var(--plus); }
+.strand.minus { color: var(--minus); }
+.tag { display: inline-block; font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.note { font-size: .87rem; color: var(--muted); margin-top: 10px; }
+
+/* Pipeline */
+.pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; counter-reset: step; }
+.step { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 18px; }
+.step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: .9rem; margin-bottom: 10px; }
+:root[data-theme="dark"] .step::before { color: #06201d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .step::before { color: #06201d; } }
+.step p { margin: 0; color: var(--muted); font-size: .93rem; }
+
+/* Code blocks */
+.code { position: relative; background: var(--code-bg); color: var(--code-text); border-radius: var(--radius); margin: 0 0 16px; }
+.code pre { margin: 0; padding: 16px 18px; overflow-x: auto; font-size: .86rem; line-height: 1.55; }
+.code .c { color: var(--code-muted); }
+.code .label { position: absolute; top: 0; left: 18px; transform: translateY(-50%); background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; }
+.copy { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,.08); color: var(--code-text); border: 1px solid rgba(255,255,255,.15); border-radius: 7px; font: 600 .75rem var(--sans); padding: 4px 10px; cursor: pointer; }
+.copy:hover { background: rgba(255,255,255,.16); }
+.install-line .copy { position: static; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tab { border: 1px solid var(--border); background: var(--surface); color: var(--muted); padding: 7px 14px; border-radius: 9px; font: 600 .9rem var(--sans); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .tab[aria-selected="true"] { color: #06201d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tab[aria-selected="true"] { color: #06201d; } }
+.panel[hidden] { display: none; }
+.panel p { color: var(--muted); margin: 0 0 14px; }
+
+ul.clean { margin: 0; padding-left: 1.1em; }
+ul.clean li { margin: 6px 0; color: var(--muted); }
+ul.clean li strong { color: var(--text); }
+
+footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: .9rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 32px; justify-content: space-between; }
+footer a { color: var(--muted); }
+
+.theme-toggle { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer; }
+.theme-toggle svg { width: 17px; height: 17px; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="HumaninFinder home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f766e"/><rect x="5" y="14" width="22" height="4" rx="2" fill="#fff"/><rect x="18" y="8" width="5" height="4" rx="1" fill="#fde68a"/><rect x="8" y="20" width="4" height="4" rx="1" fill="#fdba74"/></svg>
+      HumaninFinder
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a class="opt" href="#peptides">Peptides</a>
+      <a class="opt" href="#method">Method</a>
+      <a class="opt" href="#install">Install</a>
+      <a class="opt" href="#cite">Cite</a>
+      <a class="gh" href="https://github.com/LaBiOmicS/humaninfinder">GitHub</a>
+      <button class="theme-toggle" id="theme" type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<div class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Version 1.0.0b2 · beta · MIT</span>
+    <h1>Find <span>Humanin</span> and <span>SHLP1-6</span> where they are encoded: inside MT-RNR2.</h1>
+    <p class="lede">HumaninFinder locates the mitochondrial-derived peptides of the 16S rRNA gene in mitogenomes, contigs and nuclear assemblies (NUMTs). It finds each peptide by its homologous position in MT-RNR2, reads the species' own reading frame there, and states exactly which evidence supports every call.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Get started</a>
+      <a class="btn" href="https://github.com/LaBiOmicS/humaninfinder">Source on GitHub</a>
+      <a class="btn" href="https://github.com/LaBiOmicS/humaninfinder#readme">Documentation</a>
+    </div>
+    <div class="install-line">
+      <span class="prompt">$</span><code>pip install humanin-finder</code>
+      <button class="copy" type="button" data-copy="pip install humanin-finder">Copy</button>
+    </div>
+  </div>
+</div>
+
+<section id="why">
+  <div class="wrap">
+    <h2>Why a dedicated tool</h2>
+    <p class="section-lede">Humanin and the six small humanin-like peptides are encoded by short open reading frames that overlap a structural RNA. Generic gene finders skip them, and MT-RNR2 has many nuclear copies, so a sequence match alone does not tell where a copy comes from or whether its frame is intact.</p>
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/></svg></div>
+        <h3>Position first</h3>
+        <p>Peptides are located by their homologous position in MT-RNR2 with <code>nhmmer</code>, not by matching the human peptide, so divergent orthologues are still found.</p>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7"/></svg></div>
+        <h3>The species' own frame</h3>
+        <p>The ORF is read from the local start codon under the genetic code you choose, and classified as Complete, Incomplete or Interrupted.</p>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Graded evidence</h3>
+        <p>Names say how far the evidence goes: <code>Humanin</code>, <code>Humanin_position</code> or <code>Humanin_domain</code>, with the Pfam domain PF15040 as independent support.</p>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg></div>
+        <h3>Mitogenomes and NUMTs</h3>
+        <p><code>predict</code> gives the best frame per record; <code>scan</code> reports every locus in contigs and chromosomes that carry nuclear copies.</p>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></div>
+        <h3>Circular genomes</h3>
+        <p>Loci that cross the origin of a circular mitogenome are read through it and written with the GFF3 convention for circular sequences.</p>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></div>
+        <h3>Standard, traceable outputs</h3>
+        <p>CSV, FASTA, GFF3 and BED, plus a JSON record with the command, the options and the SHA-256 of the input. No external binaries: HMMER runs in memory.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>In silico evidence only</strong>
+      A reported frame is a homology-based candidate. HumaninFinder makes no claim that a peptide is transcribed, translated or functional.
+    </div>
+  </div>
+</section>
+
+<section id="peptides">
+  <div class="wrap">
+    <h2>Seven peptides, one gene</h2>
+    <p class="section-lede">Positions on the human reference mitogenome (rCRS, NC_012920.1), as HumaninFinder reports them on the bundled example. Humanin is on the plus strand; SHLP1-6 are on the minus strand.</p>
+
+    <div class="genemap">
+      <div class="scroll">
+        <svg viewBox="0 0 1040 190" role="img" aria-labelledby="gm-title">
+          <title id="gm-title">Map of Humanin and SHLP1-6 along MT-RNR2 in the rCRS, positions 1671 to 3229</title>
+          <style>
+            .lbl { font: 600 13px system-ui, sans-serif; fill: var(--text); }
+            .axis { font: 12px ui-monospace, monospace; fill: var(--muted); }
+            .gene { fill: var(--gene); }
+            .pp { fill: var(--plus); }
+            .pm { fill: var(--minus); }
+            .tick { stroke: var(--muted); stroke-width: 1; }
+          </style>
+          <!-- x = 20 + (position - 1671) / 1558 * 1000 -->
+          <text class="axis" x="20" y="22">+ strand</text>
+          <rect class="pp" x="637.5" y="38" width="41.7" height="16" rx="3"/>
+          <text class="lbl" x="658.3" y="32" text-anchor="middle">Humanin</text>
+
+          <rect class="gene" x="20" y="78" width="1000" height="22" rx="4"/>
+          <text class="lbl" x="30" y="94" style="font-size:12px">MT-RNR2 (16S rRNA)</text>
+
+          <rect class="pm" x="40.5" y="118" width="74.5" height="16" rx="3"/>
+          <text class="lbl" x="77.7" y="152" text-anchor="middle">SHLP3</text>
+          <rect class="pm" x="287.7" y="118" width="51.3" height="16" rx="3"/>
+          <text class="lbl" x="313.3" y="152" text-anchor="middle">SHLP2</text>
+          <rect class="pm" x="514.9" y="118" width="51.3" height="16" rx="3"/>
+          <text class="lbl" x="520" y="152" text-anchor="end">SHLP4</text>
+          <rect class="pm" x="542.5" y="140" width="47.5" height="16" rx="3"/>
+          <text class="lbl" x="598" y="153" text-anchor="start">SHLP1</text>
+          <rect class="pm" x="731.8" y="118" width="47.5" height="16" rx="3"/>
+          <text class="lbl" x="755.5" y="152" text-anchor="middle">SHLP5</text>
+          <rect class="pm" x="866.6" y="118" width="39.8" height="16" rx="3"/>
+          <text class="lbl" x="886.5" y="152" text-anchor="middle">SHLP6</text>
+          <text class="axis" x="20" y="182">− strand</text>
+
+          <line class="tick" x1="20" y1="104" x2="20" y2="110"/>
+          <text class="axis" x="20" y="72">1671</text>
+          <line class="tick" x1="1020" y1="104" x2="1020" y2="110"/>
+          <text class="axis" x="1020" y="72" text-anchor="end">3229</text>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--plus)"></span>Plus strand, read under the mitochondrial code (Table 2)</span>
+        <span><span class="swatch" style="background:var(--minus)"></span>Minus strand, read under the standard code (Table 1)</span>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:20px">
+      <table>
+        <thead>
+          <tr><th>Peptide</th><th>Strand</th><th>rCRS (1-based)</th><th>Code</th><th>Length</th><th>Sequence</th><th>Literature tier</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Humanin</strong></td><td><span class="strand plus">+</span></td><td class="nowrap mono">2633-2698</td><td>2</td><td class="nowrap">21 aa</td><td class="seq">MAPRGFSCLLLLTSEIDLPVK</td><td>—</td></tr>
+          <tr><td><strong>SHLP1</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2485-2559</td><td>1</td><td class="nowrap">24 aa</td><td class="seq">MCHWAGGASNTGDARGDVFGKQAG</td><td><span class="tag">E3</span></td></tr>
+          <tr><td><strong>SHLP2</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2088-2168</td><td>1</td><td class="nowrap">26 aa</td><td class="seq">MGVKFFTLSTRFFPSVQRAVPLWTNS</td><td><span class="tag">E4</span></td></tr>
+          <tr><td><strong>SHLP3</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">1703-1819</td><td>1</td><td class="nowrap">38 aa</td><td class="seq">MLGYNFSSFPCGTISIAPGFNFYRLYFIWVNGLAKVVW</td><td><span class="tag">E4</span></td></tr>
+          <tr><td><strong>SHLP4</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2442-2522</td><td>1</td><td class="nowrap">26 aa</td><td class="seq">MLEVMFLVNRRGKICRVPFTFFNLSL</td><td><span class="tag">E4</span></td></tr>
+          <tr><td><strong>SHLP5</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2780-2854</td><td>1</td><td class="nowrap">24 aa</td><td class="seq">MYCSEVGFCSEVAPTEIFNAGLVV</td><td><span class="tag">E2</span></td></tr>
+          <tr><td><strong>SHLP6</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2990-3052</td><td>1</td><td class="nowrap">20 aa</td><td class="seq">MLDQDIPMVQPLLKVRLFND</td><td><span class="tag">E4</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Coordinates include the stop codon. Literature tiers from Cobb <em>et al.</em> 2016: E2 transcript detected, E3 peptide detected, E4 exogenous biological activity. Read under the standard code, Humanin gives the 24-aa form <span class="mono">MAPRGFSCLLLLTSEIDLPVKRRA</span>.</p>
+  </div>
+</section>
+
+<section id="method">
+  <div class="wrap">
+    <h2>How a frame is called</h2>
+    <p class="section-lede">Four steps, each reported in the output so that every call can be traced back to its evidence.</p>
+    <div class="pipeline">
+      <div class="step">
+        <h3>Locate the locus</h3>
+        <p><code>nhmmer</code> searches the record with two profile HMMs built from vertebrate mitogenomes: the whole MT-RNR2 gene and the Humanin core. Thresholds are calibrated above the paralogous bacterial and plastid 23S and the nuclear 28S rRNAs.</p>
+      </div>
+      <div class="step">
+        <h3>Read the frame</h3>
+        <p>The species' own ORF is read from the start codon nearest the mapped human one, within 6 codons. Humanin uses the requested code; SHLP1-6 use the standard code, under which SHLP1-4 give their published sequences.</p>
+      </div>
+      <div class="step">
+        <h3>Assign a status</h3>
+        <p><strong>Complete</strong>: start through an in-frame stop. <strong>Incomplete</strong>: no start, or no stop within 60 codons. <strong>Interrupted</strong>: an in-frame stop inside the homologous span.</p>
+      </div>
+      <div class="step">
+        <h3>Name by evidence</h3>
+        <p><code>Humanin</code> at a vertebrate-like locus, <code>Humanin_position</code> outside the vertebrate pattern, <code>Humanin_domain</code> for a PF15040 domain outside any locus.</p>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:20px">
+      <div class="card">
+        <h3>Evidence tiers</h3>
+        <p style="margin-bottom:10px">Every frame HumaninFinder reports is <strong>E1</strong>: in silico, at a homologous position conserved across clades. The literature tier of the human peptide (E2-E4) is copied only when the frame found is identical to it.</p>
+      </div>
+      <div class="card">
+        <h3>Outputs</h3>
+        <ul class="clean">
+          <li><strong>CSV</strong>: one row per frame, with coordinates, scores and evidence</li>
+          <li><strong>FASTA</strong>: peptide sequences</li>
+          <li><strong>GFF3 and BED</strong>: tracks for genome browsers, circular-aware</li>
+          <li><strong>JSON</strong>: provenance (command, options, input SHA-256, version)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="section-lede">Python ≥ 3.10. Dependencies: Biopython, click and pyhmmer. HMMER runs in memory, so there are no external binaries to install.</p>
+
+    <div class="tabs" role="tablist" aria-label="Installation method">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="p-pip" id="t-pip">pip</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p-conda" id="t-conda">Bioconda</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="p-src" id="t-src">From source</button>
+    </div>
+
+    <div class="panel" id="p-pip" role="tabpanel" aria-labelledby="t-pip">
+      <p>The released package from PyPI.</p>
+      <div class="code"><button class="copy" type="button">Copy</button><pre>pip install humanin-finder
+humanin-finder setup</pre></div>
+    </div>
+    <div class="panel" id="p-conda" role="tabpanel" aria-labelledby="t-conda" hidden>
+      <p>The recipe is under review in <a href="https://github.com/bioconda/bioconda-recipes/pull/71446">bioconda-recipes#71446</a>; this command works once it is merged.</p>
+      <div class="code"><button class="copy" type="button">Copy</button><pre>conda install -c conda-forge -c bioconda humanin-finder
+humanin-finder setup</pre></div>
+    </div>
+    <div class="panel" id="p-src" role="tabpanel" aria-labelledby="t-src" hidden>
+      <p>A clone in its own conda environment, built from <a href="https://github.com/LaBiOmicS/humaninfinder/blob/main/environment.yml"><code>environment.yml</code></a> (editable install, with pytest and ruff).</p>
+      <div class="code"><button class="copy" type="button">Copy</button><pre>git clone https://github.com/LaBiOmicS/humaninfinder.git
+cd humaninfinder
+micromamba env create -f environment.yml   # or: conda env create -f environment.yml
+micromamba activate humaninfinder
+humanin-finder setup</pre></div>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="wrap">
+    <h2>Quick start</h2>
+    <p class="section-lede">The human reference mitogenome ships in <code>examples/</code>. Under the vertebrate mitochondrial code, treated as circular, it gives seven complete frames at the expected locus.</p>
+    <div class="code"><span class="label">run</span><button class="copy" type="button" data-copy="humanin-finder predict -i examples/rcrs_nc_012920_1.fasta -o rcrs -g 2 --circular">Copy</button><pre>$ humanin-finder predict -i examples/rcrs_nc_012920_1.fasta -o rcrs -g 2 --circular
+<span class="c">Sequence ID   | Peptide | Status   | 1-Based Coords | Locus bits | HMM Score</span>
+NC_012920.1   | Humanin | Complete | 2633-2698      | 1341       | 57.2
+NC_012920.1   | SHLP3   | Complete | 1703-1819      | 1341       | -
+NC_012920.1   | SHLP2   | Complete | 2088-2168      | 1341       | -
+NC_012920.1   | SHLP4   | Complete | 2442-2522      | 1341       | -
+NC_012920.1   | SHLP1   | Complete | 2485-2559      | 1341       | -
+NC_012920.1   | SHLP5   | Complete | 2780-2854      | 1341       | -
+NC_012920.1   | SHLP6   | Complete | 2990-3052      | 1341       | -
+
+<span class="c"># writes rcrs_results.{csv,fasta,gff3,bed} and rcrs_run.json</span></pre></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Task</th><th>Command</th></tr></thead>
+        <tbody>
+          <tr><td>Complete mitogenomes, any assembly origin</td><td class="mono">humanin-finder predict -i mito.fasta -o mito -g 2 --circular</td></tr>
+          <tr><td>Mitochondrial and standard readings side by side</td><td class="mono">humanin-finder predict -i mito.fasta -o mito -g 2,1</td></tr>
+          <tr><td>Every MT-RNR2 copy (NUMTs) in a nuclear assembly</td><td class="mono">humanin-finder scan -i genome.fa.gz -o numts -g 1</td></tr>
+          <tr><td>Non-vertebrate mitogenome (e.g. insects)</td><td class="mono">humanin-finder predict -i dmel_mt.fasta -o dmel -g 5 --circular</td></tr>
+          <tr><td>Check a FASTA before a long run</td><td class="mono">humanin-finder lint genome.fa.gz</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <h2>Scope and limitations</h2>
+    <ul class="clean">
+      <li><strong>Homology only.</strong> Evidence is the position in MT-RNR2 and/or the PF15040 domain. Expression and function have to be shown experimentally.</li>
+      <li><strong>Vertebrate profiles.</strong> The profiles were built from vertebrate mitogenomes; outside vertebrates a locus is named <code>_position</code> at most.</li>
+      <li><strong>Automatic genetic code.</strong> <code>-g auto</code> treats records ≤ 50 kb as mitochondrial and covers vertebrate codes only. Other mitogenomes, and NUMTs in short nuclear contigs, need an explicit code.</li>
+      <li><strong>Beta.</strong> The command-line interface and outputs are expected to stay stable, but may still change before 1.0.0.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="cite">
+  <div class="wrap">
+    <h2>Cite</h2>
+    <p class="section-lede">The accompanying article is in preparation. Until it is published, please cite the software version you ran; machine-readable metadata are in <a href="https://github.com/LaBiOmicS/humaninfinder/blob/main/CITATION.cff"><code>CITATION.cff</code></a>.</p>
+    <div class="code"><span class="label">BibTeX</span><button class="copy" type="button">Copy</button><pre>@software{humaninfinder,
+  author  = {Menegidio, Fabiano Bezerra and {LaBiOmicS}},
+  title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
+  version = {1.0.0b2},
+  year    = {2026},
+  url     = {https://github.com/LaBiOmicS/humaninfinder}
+}</pre></div>
+    <p class="note">Please also cite Cobb <em>et al.</em> 2016 (<em>Aging</em> 8:796-809) for the SHLPs, PyHMMER (Larralde &amp; Zeller 2023, <em>Bioinformatics</em> 39:btad214) and Pfam.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <strong style="color:var(--text)">HumaninFinder</strong> · developed at LaBiOmicS, Universidade de Mogi das Cruzes (UMC), Brazil.<br>
+      Maintainer: Prof. Dr. Fabiano Bezerra Menegidio. Released under the MIT License.
+    </div>
+    <div>
+      <a href="https://github.com/LaBiOmicS/humaninfinder">GitHub</a> ·
+      <a href="https://github.com/LaBiOmicS/humaninfinder/issues">Issues</a> ·
+      <a href="https://github.com/LaBiOmicS/humaninfinder/releases">Releases</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Copy buttons: copy data-copy if present, otherwise the text of the neighbouring <pre>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      if (!text) { var pre = btn.parentElement.querySelector('pre'); text = pre ? pre.innerText : ''; }
+      var done = function () { var t = btn.textContent; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = t; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      }
+    });
+  });
+
+  // Install tabs
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+    });
+  });
+
+  // Theme toggle, remembered per visitor when storage is available
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('hf-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  document.getElementById('theme').addEventListener('click', function () {
+    var current = root.getAttribute('data-theme') ||
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('hf-theme', next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

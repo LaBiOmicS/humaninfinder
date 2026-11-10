@@ -10,6 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#project-status)
 
+[Website](https://labiomics.github.io/humaninfinder/) •
 [Installation](#installation) •
 [Quick start](#quick-start) •
 [Usage](#usage) •
