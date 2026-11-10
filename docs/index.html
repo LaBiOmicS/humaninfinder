@@ -283,7 +283,7 @@ footer a { color: var(--muted); }
 <section id="peptides">
   <div class="wrap">
     <h2>Seven peptides, one gene</h2>
-    <p class="section-lede">Positions on the human reference mitogenome (rCRS, NC_012920.1), as HumaninFinder reports them on the bundled example. Humanin is on the plus strand; SHLP1-6 are on the minus strand.</p>
+    <p class="section-lede">Positions on the human reference mitogenome (rCRS, NC_012920.1), as HumaninFinder reports them on the bundled example. Humanin and SHLP6 lie on the plus strand, SHLP1-5 on the minus strand. The map is drawn to scale.</p>
 
     <div class="genemap">
       <div class="scroll">
@@ -315,8 +315,8 @@ footer a { color: var(--muted); }
           <text class="lbl" x="598" y="153" text-anchor="start">SHLP1</text>
           <rect class="pm" x="731.8" y="118" width="47.5" height="16" rx="3"/>
           <text class="lbl" x="755.5" y="152" text-anchor="middle">SHLP5</text>
-          <rect class="pm" x="866.6" y="118" width="39.8" height="16" rx="3"/>
-          <text class="lbl" x="886.5" y="152" text-anchor="middle">SHLP6</text>
+          <rect class="pm" x="866.6" y="38" width="39.8" height="16" rx="3"/>
+          <text class="lbl" x="886.5" y="32" text-anchor="middle">SHLP6</text>
           <text class="axis" x="20" y="182">− strand</text>
 
           <line class="tick" x1="20" y1="104" x2="20" y2="110"/>
@@ -326,8 +326,9 @@ footer a { color: var(--muted); }
         </svg>
       </div>
       <div class="legend">
-        <span><span class="swatch" style="background:var(--plus)"></span>Plus strand, read under the mitochondrial code (Table 2)</span>
-        <span><span class="swatch" style="background:var(--minus)"></span>Minus strand, read under the standard code (Table 1)</span>
+        <span>Above the gene: plus strand · below: minus strand</span>
+        <span><span class="swatch" style="background:var(--plus)"></span>Read under the mitochondrial code (Table 2)</span>
+        <span><span class="swatch" style="background:var(--minus)"></span>Read under the standard code (Table 1)</span>
       </div>
     </div>
 
@@ -343,7 +344,7 @@ footer a { color: var(--muted); }
           <tr><td><strong>SHLP3</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">1703-1819</td><td>1</td><td class="nowrap">38 aa</td><td class="seq">MLGYNFSSFPCGTISIAPGFNFYRLYFIWVNGLAKVVW</td><td><span class="tag">E4</span></td></tr>
           <tr><td><strong>SHLP4</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2442-2522</td><td>1</td><td class="nowrap">26 aa</td><td class="seq">MLEVMFLVNRRGKICRVPFTFFNLSL</td><td><span class="tag">E4</span></td></tr>
           <tr><td><strong>SHLP5</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2780-2854</td><td>1</td><td class="nowrap">24 aa</td><td class="seq">MYCSEVGFCSEVAPTEIFNAGLVV</td><td><span class="tag">E2</span></td></tr>
-          <tr><td><strong>SHLP6</strong></td><td><span class="strand minus">−</span></td><td class="nowrap mono">2990-3052</td><td>1</td><td class="nowrap">20 aa</td><td class="seq">MLDQDIPMVQPLLKVRLFND</td><td><span class="tag">E4</span></td></tr>
+          <tr><td><strong>SHLP6</strong></td><td><span class="strand plus">+</span></td><td class="nowrap mono">2990-3052</td><td>1</td><td class="nowrap">20 aa</td><td class="seq">MLDQDIPMVQPLLKVRLFND</td><td><span class="tag">E4</span></td></tr>
         </tbody>
       </table>
     </div>

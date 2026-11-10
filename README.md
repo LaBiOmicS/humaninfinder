@@ -69,7 +69,7 @@ HumaninFinder on the bundled example. Coordinates are 1-based and include the st
 | SHLP3 | − | 1703-1819 | 1 | 38 aa | `MLGYNFSSFPCGTISIAPGFNFYRLYFIWVNGLAKVVW` | E4 |
 | SHLP4 | − | 2442-2522 | 1 | 26 aa | `MLEVMFLVNRRGKICRVPFTFFNLSL` | E4 |
 | SHLP5 | − | 2780-2854 | 1 | 24 aa | `MYCSEVGFCSEVAPTEIFNAGLVV` | E2 |
-| SHLP6 | − | 2990-3052 | 1 | 20 aa | `MLDQDIPMVQPLLKVRLFND` | E4 |
+| SHLP6 | + | 2990-3052 | 1 | 20 aa | `MLDQDIPMVQPLLKVRLFND` | E4 |
 
 ¹ Cobb *et al.* 2016: E2 transcript detected, E3 peptide detected, E4 exogenous biological activity.
 Humanin read under the cytosolic code (Table 1) gives the 24-aa form `MAPRGFSCLLLLTSEIDLPVKRRA`.
