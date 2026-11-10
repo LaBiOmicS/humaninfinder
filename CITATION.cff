@@ -19,6 +19,15 @@ keywords:
   - NUMT
   - bioinformatics
 repository-code: "https://github.com/LaBiOmicS/humaninfinder"
+# Concept DOI: resolves to the latest Zenodo version. Version DOIs are listed under identifiers.
+doi: 10.5281/zenodo.24108118
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24108118
+    description: "Concept DOI (all versions)"
+  - type: doi
+    value: 10.5281/zenodo.24108119
+    description: "HumaninFinder 1.0.0b3"
 
 # Without this block, anyone citing the software fails to cite the paper. The entry is deliberately
 # marked unpublished: fill in the full author list, journal, year and doi at submission and switch

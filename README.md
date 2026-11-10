@@ -6,6 +6,7 @@
 
 [![tests](https://github.com/LaBiOmicS/humaninfinder/actions/workflows/tests.yml/badge.svg)](https://github.com/LaBiOmicS/humaninfinder/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/humanin-finder.svg)](https://pypi.org/project/humanin-finder/)
+[![DOI](https://zenodo.org/badge/1452530503.svg)](https://doi.org/10.5281/zenodo.24108118)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#project-status)
@@ -360,8 +361,10 @@ change.
 ## Citation
 
 If you use HumaninFinder, please cite the software version you ran. The accompanying article is in
-preparation; this section will be updated when it is published. Machine-readable metadata are in
-[`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" button).
+preparation; this section will be updated when it is published. Each release is archived on Zenodo:
+[10.5281/zenodo.24108118](https://doi.org/10.5281/zenodo.24108118) always resolves to the latest
+version, and each version has its own DOI (1.0.0b3: 10.5281/zenodo.24108119). Machine-readable
+metadata are in [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" button).
 
 ```bibtex
 @software{humaninfinder,
@@ -369,6 +372,7 @@ preparation; this section will be updated when it is published. Machine-readable
   title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
   version = {1.0.0b3},
   year    = {2026},
+  doi     = {10.5281/zenodo.24108119},
   url     = {https://github.com/LaBiOmicS/humaninfinder}
 }
 ```
