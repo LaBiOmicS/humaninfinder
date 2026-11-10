@@ -1,11 +1,11 @@
 cff-version: 1.2.0
 message: "If you use HumaninFinder, please cite the paper (preferred-citation) and, for the exact\n  version you ran, this software record."
 title: "HumaninFinder: homology-first location and annotation of Humanin and SHLP1-6"
-version: 1.0.0b1
+version: 1.0.0b2
 date-released: 2026-11-10
 license: MIT
 authors:
-  # Software authorship for 1.0.0b1. The paper's author list is not settled yet; when it is, update
+  # Software authorship for 1.0.0b2. The paper's author list is not settled yet; when it is, update
   # preferred-citation.authors (and, if the team decides so, this list).
   - family-names: Menegidio
     given-names: Fabiano Bezerra
