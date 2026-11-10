@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://github.com/LaBiOmicS/humaninfinder/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 0000000000000000000000000000000000000000000000000000000000000000  # set after the v1.0.0b3 tag is pushed
+  sha256: 223444a1d00e10c0d739a1cbf2e63d5eb1916fd4caaac4e32e4ff4560b2536f6
 
 build:
   noarch: python
