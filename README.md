@@ -5,7 +5,7 @@
 **Homology-based location and annotation of Humanin and SHLP1-6 in mitogenomes, contigs and nuclear assemblies**
 
 [![tests](https://github.com/LaBiOmicS/humaninfinder/actions/workflows/tests.yml/badge.svg)](https://github.com/LaBiOmicS/humaninfinder/actions/workflows/tests.yml)
-[![PyPI](https://img.shields.io/pypi/v/humanin-finder.svg)](https://pypi.org/project/humanin-finder/)
+[![PyPI](https://img.shields.io/pypi/v/humanin-finder.svg?include_prereleases&label=PyPI)](https://pypi.org/project/humanin-finder/)
 [![DOI](https://zenodo.org/badge/1452530503.svg)](https://doi.org/10.5281/zenodo.24108118)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
