@@ -122,7 +122,7 @@ Then check that the installation and every bundled data file are usable:
 
 ```console
 $ humanin-finder setup
-[*] Verifying HumaninFinder v1.0.0b2 prerequisites...
+[*] Verifying HumaninFinder v1.0.0b3 prerequisites...
 [+] pyhmmer (in-memory HMMER 0.12.3) verified.
 [+] PF15040 Humanin domain: gathering threshold 27.0 bits.
 [+] SHLP references: SHLP1, SHLP2, SHLP3, SHLP4, SHLP5, SHLP6.
@@ -317,8 +317,9 @@ peptide and is copied only when the frame found is identical to it.
 
 ## Project status
 
-HumaninFinder **1.0.0b2** is a beta that accompanies a manuscript in preparation (1.0.0b1 was the first
-tagged release; 1.0.0b2 adds this documentation and fixes the rat record of the example set): the
+HumaninFinder **1.0.0b3** is a beta that accompanies a manuscript in preparation (1.0.0b1 was the first
+tagged release; 1.0.0b2 added this documentation and fixed the rat record of the example set; 1.0.0b3
+corrects the strand of SHLP6 in the documentation and adds the web version and `environment.yml`): the
 command-line interface and output formats are expected to stay stable, but they may still change before
 1.0.0. Changes are listed on the [releases page](https://github.com/LaBiOmicS/humaninfinder/releases).
 
@@ -366,7 +367,7 @@ preparation; this section will be updated when it is published. Machine-readable
 @software{humaninfinder,
   author  = {Menegidio, Fabiano Bezerra and {LaBiOmicS}},
   title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
-  version = {1.0.0b2},
+  version = {1.0.0b3},
   year    = {2026},
   url     = {https://github.com/LaBiOmicS/humaninfinder}
 }

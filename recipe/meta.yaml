@@ -1,6 +1,6 @@
-# Bioconda recipe for 1.0.0b2 (sha256 of the GitHub tag tarball)
+# Bioconda recipe for 1.0.0b3 (sha256 of the GitHub tag tarball)
 {% set name = "humanin-finder" %}
-{% set version = "1.0.0b2" %}
+{% set version = "1.0.0b3" %}
 
 package:
   name: {{ name }}
@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://github.com/LaBiOmicS/humaninfinder/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: fc33e43ac1e1fbe3176c61aa60882b5cb3708ea6a328ef9d1a389ceab503ec1a
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000  # set after the v1.0.0b3 tag is pushed
 
 build:
   noarch: python
