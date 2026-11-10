@@ -9,9 +9,9 @@ description = "Homology-based location and annotation of Humanin and SHLP1-6 mit
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-# Kept in step with CITATION.cff and .zenodo.json. Software authorship may legitimately differ
-# from the paper's five authors; adding the other four is a decision for the release commit.
-authors = [{ name = "Fabiano Bezerra Menegidio" }]
+# Kept in step with CITATION.cff and .zenodo.json. Software authorship may differ from the paper's
+# author list, which is not settled yet.
+authors = [{ name = "Fabiano Bezerra Menegidio" }, { name = "LaBiOmicS" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",

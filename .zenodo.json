@@ -6,6 +6,9 @@
     {
       "name": "Menegidio, Fabiano Bezerra",
       "affiliation": "Universidade de Mogi das Cruzes"
+    },
+    {
+      "name": "LaBiOmicS"
     }
   ],
   "keywords": [
@@ -24,7 +27,7 @@
     }
   ],
   "version": "1.0.0b1",
-  "publication_date": "2026-11-09",
+  "publication_date": "2026-11-10",
   "access_right": "open",
   "notes": "Beta release accompanying a manuscript in preparation."
 }

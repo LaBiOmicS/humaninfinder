@@ -2,14 +2,15 @@ cff-version: 1.2.0
 message: "If you use HumaninFinder, please cite the paper (preferred-citation) and, for the exact\n  version you ran, this software record."
 title: "HumaninFinder: homology-first location and annotation of Humanin and SHLP1-6"
 version: 1.0.0b1
-date-released: 2026-11-09
+date-released: 2026-11-10
 license: MIT
 authors:
-  # Software authorship. The paper has five authors; adding the other four here is a decision for
-  # the release commit, and is why this list and preferred-citation.authors differ for now.
+  # Software authorship for 1.0.0b1. The paper's author list is not settled yet; when it is, update
+  # preferred-citation.authors (and, if the team decides so, this list).
   - family-names: Menegidio
     given-names: Fabiano Bezerra
     affiliation: "Universidade de Mogi das Cruzes"
+  - name: LaBiOmicS
 keywords:
   - Humanin
   - mitochondrial-derived peptides
