@@ -7,7 +7,7 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/LaBiOmicS/humanin-finder/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/LaBiOmicS/humaninfinder/archive/refs/tags/v{{ version }}.tar.gz
   sha256: REPLACE_WITH_RELEASE_TARBALL_SHA256
 
 build:
@@ -55,7 +55,7 @@ test:
     - pytest tests -q -x
 
 about:
-  home: https://github.com/LaBiOmicS/humanin-finder
+  home: https://github.com/LaBiOmicS/humaninfinder
   license: MIT
   license_file: LICENSE
   summary: Homology-based location and annotation of Humanin and SHLP1-6 mitochondrial-derived peptides

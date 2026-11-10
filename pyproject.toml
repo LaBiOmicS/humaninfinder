@@ -33,10 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/LaBiOmicS/humanin-finder"
-Repository = "https://github.com/LaBiOmicS/humanin-finder"
-Issues = "https://github.com/LaBiOmicS/humanin-finder/issues"
-Changelog = "https://github.com/LaBiOmicS/humanin-finder/releases"
+Homepage = "https://github.com/LaBiOmicS/humaninfinder"
+Repository = "https://github.com/LaBiOmicS/humaninfinder"
+Issues = "https://github.com/LaBiOmicS/humaninfinder/issues"
+Changelog = "https://github.com/LaBiOmicS/humaninfinder/releases"
 
 [project.scripts]
 humanin-finder = "humanin_finder.cli:main"

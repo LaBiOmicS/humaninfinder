@@ -18,7 +18,7 @@
   "description": "Locates Humanin and SHLP1-6 by their position in MT-RNR2 (multi-clade vertebrate profiles) in mitogenomes, contigs and nuclear assemblies, and reports each species' own reading frame with explicit in silico evidence.",
   "related_identifiers": [
     {
-      "identifier": "https://github.com/LaBiOmicS/humanin-finder",
+      "identifier": "https://github.com/LaBiOmicS/humaninfinder",
       "relation": "isSupplementTo",
       "scheme": "url"
     }

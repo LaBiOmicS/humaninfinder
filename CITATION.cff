@@ -17,7 +17,7 @@ keywords:
   - MT-RNR2
   - NUMT
   - bioinformatics
-repository-code: "https://github.com/LaBiOmicS/humanin-finder"
+repository-code: "https://github.com/LaBiOmicS/humaninfinder"
 
 # Without this block, anyone citing the software fails to cite the paper. The entry is deliberately
 # marked unpublished: fill in the full author list, journal, year and doi at submission and switch
