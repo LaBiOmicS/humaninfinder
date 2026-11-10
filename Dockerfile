@@ -4,8 +4,8 @@
 # humanin-finder==<version>` gives users, with nothing from the working tree. Published by
 # .github/workflows/container.yml as ghcr.io/labiomics/humaninfinder:<version>.
 #
-#   docker build --build-arg VERSION=1.0.0b3 -t humaninfinder:1.0.0b3 .
-#   docker run --rm -v "$PWD":/data humaninfinder:1.0.0b3 predict genome.fasta -o results
+#   docker build --build-arg VERSION=1.0.0b4 -t humaninfinder:1.0.0b4 .
+#   docker run --rm -v "$PWD":/data humaninfinder:1.0.0b4 predict -i genome.fasta -o results
 #
 # Files are read from and written to /data (the working directory); mount your directory there.
 

@@ -103,14 +103,14 @@ conda install -c conda-forge -c bioconda humanin-finder
 [GitHub Container Registry](https://github.com/LaBiOmicS/humaninfinder/pkgs/container/humaninfinder))
 
 ```sh
-docker pull ghcr.io/labiomics/humaninfinder:1.0.0b3
+docker pull ghcr.io/labiomics/humaninfinder:1.0.0b4
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/data \
-  ghcr.io/labiomics/humaninfinder:1.0.0b3 predict -i genome.fasta -o results
+  ghcr.io/labiomics/humaninfinder:1.0.0b4 predict -i genome.fasta -o results
 ```
 
 The image holds the PyPI release of the same version. Its working directory is `/data`: mount your
 directory there; `--user` makes the outputs yours. With Apptainer/Singularity:
-`apptainer run docker://ghcr.io/labiomics/humaninfinder:1.0.0b3 predict -i genome.fasta -o results`.
+`apptainer run docker://ghcr.io/labiomics/humaninfinder:1.0.0b4 predict -i genome.fasta -o results`.
 
 **From source**
 
@@ -136,7 +136,7 @@ Then check that the installation and every bundled data file are usable:
 
 ```console
 $ humanin-finder setup
-[*] Verifying HumaninFinder v1.0.0b3 prerequisites...
+[*] Verifying HumaninFinder v1.0.0b4 prerequisites...
 [+] pyhmmer (in-memory HMMER 0.12.3) verified.
 [+] PF15040 Humanin domain: gathering threshold 27.0 bits.
 [+] SHLP references: SHLP1, SHLP2, SHLP3, SHLP4, SHLP5, SHLP6.
@@ -331,9 +331,10 @@ peptide and is copied only when the frame found is identical to it.
 
 ## Project status
 
-HumaninFinder **1.0.0b3** is a beta that accompanies a manuscript in preparation (1.0.0b1 was the first
+HumaninFinder **1.0.0b4** is a beta that accompanies a manuscript in preparation (1.0.0b1 was the first
 tagged release; 1.0.0b2 added this documentation and fixed the rat record of the example set; 1.0.0b3
-corrects the strand of SHLP6 in the documentation and adds the web version and `environment.yml`): the
+corrects the strand of SHLP6 in the documentation and adds the web version and `environment.yml`;
+1.0.0b4 adds the container image and the Zenodo DOI): the
 command-line interface and output formats are expected to stay stable, but they may still change before
 1.0.0. Changes are listed on the [releases page](https://github.com/LaBiOmicS/humaninfinder/releases).
 
@@ -377,16 +378,16 @@ change.
 If you use HumaninFinder, please cite the software version you ran. The accompanying article is in
 preparation; this section will be updated when it is published. Each release is archived on Zenodo:
 [10.5281/zenodo.24108118](https://doi.org/10.5281/zenodo.24108118) always resolves to the latest
-version, and each version has its own DOI (1.0.0b3: 10.5281/zenodo.24108119). Machine-readable
+version, and each version has its own DOI, listed on the Zenodo record. Machine-readable
 metadata are in [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" button).
 
 ```bibtex
 @software{humaninfinder,
   author  = {Menegidio, Fabiano Bezerra and {LaBiOmicS}},
   title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
-  version = {1.0.0b3},
+  version = {1.0.0b4},
   year    = {2026},
-  doi     = {10.5281/zenodo.24108119},
+  doi     = {10.5281/zenodo.24108118},
   url     = {https://github.com/LaBiOmicS/humaninfinder}
 }
 ```

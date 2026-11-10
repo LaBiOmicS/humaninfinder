@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Released version on PyPI (e.g. 1.0.0b3)"
+        description: "Released version on PyPI (e.g. 1.0.0b4)"
         required: true
 
 permissions:

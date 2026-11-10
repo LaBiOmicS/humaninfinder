@@ -6,7 +6,7 @@ const PYODIDE_VERSION = "0.27.8";
 const PYODIDE_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 const WHEELS = [
   "wheels/pyhmmer-0.12.3-cp312-abi3-pyodide_2024_0_wasm32.whl",
-  "wheels/humanin_finder-1.0.0b3-py3-none-any.whl",
+  "wheels/humanin_finder-1.0.0b4-py3-none-any.whl",
 ];
 
 importScripts(PYODIDE_URL + "pyodide.js");

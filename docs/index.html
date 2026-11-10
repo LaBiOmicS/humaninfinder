@@ -273,7 +273,7 @@ footer p { margin: 0 0 6px; }
   <div class="wrap">
     <a class="brand" href="#top" aria-label="HumaninFinder home">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#123b37"/><rect x="5" y="15" width="22" height="3" rx="1.5" fill="#cfe3df"/><rect x="17" y="9" width="5" height="4" rx="1" fill="#2bb5a3"/><rect x="8" y="20" width="5" height="4" rx="1" fill="#e08a2c"/></svg>
-      HumaninFinder <small>1.0.0b3</small>
+      HumaninFinder <small>1.0.0b4</small>
     </a>
     <nav class="nav-links" aria-label="Sections">
       <a class="opt" href="#online">Run online</a>
@@ -539,9 +539,9 @@ humanin-finder setup</pre></div>
         </div>
         <div class="tabpanel" id="p-docker" role="tabpanel" aria-labelledby="t-docker" hidden>
           <p>Images for amd64 and arm64 on the <a href="https://github.com/LaBiOmicS/humaninfinder/pkgs/container/humaninfinder">GitHub Container Registry</a>, holding the PyPI release. Mount your directory at <code>/data</code>.</p>
-          <div class="code"><button class="copy" type="button">Copy</button><pre>docker pull ghcr.io/labiomics/humaninfinder:1.0.0b3
+          <div class="code"><button class="copy" type="button">Copy</button><pre>docker pull ghcr.io/labiomics/humaninfinder:1.0.0b4
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/data \
-  ghcr.io/labiomics/humaninfinder:1.0.0b3 predict -i genome.fasta -o results</pre></div>
+  ghcr.io/labiomics/humaninfinder:1.0.0b4 predict -i genome.fasta -o results</pre></div>
         </div>
         <div class="tabpanel" id="p-src" role="tabpanel" aria-labelledby="t-src" hidden>
           <p>A clone in its own environment from <a href="https://github.com/LaBiOmicS/humaninfinder/blob/main/environment.yml"><code>environment.yml</code></a>, installed in editable mode with pytest and ruff.</p>
@@ -604,14 +604,14 @@ humanin-finder setup</pre></div>
     <div class="sec-head">
       <span class="label">Cite</span>
       <h2>Using HumaninFinder in your work.</h2>
-      <p>The accompanying article is in preparation. Until it is published, please cite the software version you ran. Releases are archived on Zenodo (<a href="https://doi.org/10.5281/zenodo.24108118">10.5281/zenodo.24108118</a>, always the latest version; 1.0.0b3 is 10.5281/zenodo.24108119); metadata are in <a href="https://github.com/LaBiOmicS/humaninfinder/blob/main/CITATION.cff"><code>CITATION.cff</code></a>.</p>
+      <p>The accompanying article is in preparation. Until it is published, please cite the software version you ran. Releases are archived on Zenodo (<a href="https://doi.org/10.5281/zenodo.24108118">10.5281/zenodo.24108118</a>, always the latest version; each version's own DOI is on the Zenodo record); metadata are in <a href="https://github.com/LaBiOmicS/humaninfinder/blob/main/CITATION.cff"><code>CITATION.cff</code></a>.</p>
     </div>
     <div class="code"><button class="copy" type="button">Copy</button><pre>@software{humaninfinder,
   author  = {Menegidio, Fabiano Bezerra and {LaBiOmicS}},
   title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
-  version = {1.0.0b3},
+  version = {1.0.0b4},
   year    = {2026},
-  doi     = {10.5281/zenodo.24108119},
+  doi     = {10.5281/zenodo.24108118},
   url     = {https://github.com/LaBiOmicS/humaninfinder}
 }</pre></div>
     <p class="fineprint">Please also cite Cobb <em>et al.</em> 2016 (<em>Aging</em> 8:796-809) for the SHLPs, PyHMMER (Larralde &amp; Zeller 2023, <em>Bioinformatics</em> 39:btad214) and Pfam.</p>

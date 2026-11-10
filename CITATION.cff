@@ -1,11 +1,11 @@
 cff-version: 1.2.0
 message: "If you use HumaninFinder, please cite the paper (preferred-citation) and, for the exact\n  version you ran, this software record."
 title: "HumaninFinder: homology-first location and annotation of Humanin and SHLP1-6"
-version: 1.0.0b3
+version: 1.0.0b4
 date-released: 2026-11-10
 license: MIT
 authors:
-  # Software authorship for 1.0.0b3. The paper's author list is not settled yet; when it is, update
+  # Software authorship for 1.0.0b4. The paper's author list is not settled yet; when it is, update
   # preferred-citation.authors (and, if the team decides so, this list).
   - family-names: Menegidio
     given-names: Fabiano Bezerra
@@ -19,15 +19,8 @@ keywords:
   - NUMT
   - bioinformatics
 repository-code: "https://github.com/LaBiOmicS/humaninfinder"
-# Concept DOI: resolves to the latest Zenodo version. Version DOIs are listed under identifiers.
+# Concept DOI: resolves to the latest Zenodo version; each version's own DOI is listed on Zenodo.
 doi: 10.5281/zenodo.24108118
-identifiers:
-  - type: doi
-    value: 10.5281/zenodo.24108118
-    description: "Concept DOI (all versions)"
-  - type: doi
-    value: 10.5281/zenodo.24108119
-    description: "HumaninFinder 1.0.0b3"
 
 # Without this block, anyone citing the software fails to cite the paper. The entry is deliberately
 # marked unpublished: fill in the full author list, journal, year and doi at submission and switch
