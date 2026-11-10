@@ -99,6 +99,19 @@ pip install humanin-finder
 conda install -c conda-forge -c bioconda humanin-finder
 ```
 
+**With Docker** (or Podman; images for linux/amd64 and linux/arm64 on the
+[GitHub Container Registry](https://github.com/LaBiOmicS/humaninfinder/pkgs/container/humaninfinder))
+
+```sh
+docker pull ghcr.io/labiomics/humaninfinder:1.0.0b3
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/data \
+  ghcr.io/labiomics/humaninfinder:1.0.0b3 predict -i genome.fasta -o results
+```
+
+The image holds the PyPI release of the same version. Its working directory is `/data`: mount your
+directory there; `--user` makes the outputs yours. With Apptainer/Singularity:
+`apptainer run docker://ghcr.io/labiomics/humaninfinder:1.0.0b3 predict -i genome.fasta -o results`.
+
 **From source**
 
 ```sh
@@ -348,6 +361,7 @@ examples/           # rCRS reference mitogenome and a small test set
 tests/              # unit and regression tests
 recipe/             # Bioconda recipe
 environment.yml     # conda environment for a clone
+Dockerfile          # container image of a released version (ghcr.io)
 ```
 
 ### Contributing

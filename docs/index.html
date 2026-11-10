@@ -524,6 +524,7 @@ footer p { margin: 0 0 6px; }
         <div class="tabs" role="tablist" aria-label="Installation method">
           <button class="tab" role="tab" aria-selected="true" aria-controls="p-pip" id="t-pip">pip</button>
           <button class="tab" role="tab" aria-selected="false" aria-controls="p-conda" id="t-conda">Bioconda</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="p-docker" id="t-docker">Docker</button>
           <button class="tab" role="tab" aria-selected="false" aria-controls="p-src" id="t-src">From source</button>
         </div>
         <div class="tabpanel" id="p-pip" role="tabpanel" aria-labelledby="t-pip">
@@ -535,6 +536,12 @@ humanin-finder setup</pre></div>
           <p>Under review in <a href="https://github.com/bioconda/bioconda-recipes/pull/71446">bioconda-recipes#71446</a>; available once merged.</p>
           <div class="code"><button class="copy" type="button">Copy</button><pre>conda install -c conda-forge -c bioconda humanin-finder
 humanin-finder setup</pre></div>
+        </div>
+        <div class="tabpanel" id="p-docker" role="tabpanel" aria-labelledby="t-docker" hidden>
+          <p>Images for amd64 and arm64 on the <a href="https://github.com/LaBiOmicS/humaninfinder/pkgs/container/humaninfinder">GitHub Container Registry</a>, holding the PyPI release. Mount your directory at <code>/data</code>.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre>docker pull ghcr.io/labiomics/humaninfinder:1.0.0b3
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/data \
+  ghcr.io/labiomics/humaninfinder:1.0.0b3 predict -i genome.fasta -o results</pre></div>
         </div>
         <div class="tabpanel" id="p-src" role="tabpanel" aria-labelledby="t-src" hidden>
           <p>A clone in its own environment from <a href="https://github.com/LaBiOmicS/humaninfinder/blob/main/environment.yml"><code>environment.yml</code></a>, installed in editable mode with pytest and ruff.</p>

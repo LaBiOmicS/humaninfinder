@@ -1,0 +1,86 @@
+name: container
+
+# Builds the Docker image of a *released* version (installed from PyPI, see Dockerfile), tests it,
+# and publishes it to ghcr.io/labiomics/humaninfinder for linux/amd64 and linux/arm64.
+#
+# Runs when a GitHub Release is published (version = tag without the leading "v"), or by hand
+# for any version already on PyPI: Actions -> container -> Run workflow.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Released version on PyPI (e.g. 1.0.0b3)"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/labiomics/humaninfinder
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the version
+        id: v
+        env:
+          INPUT: ${{ github.event.inputs.version }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          v="${INPUT:-${TAG#v}}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$ ]] || { echo "bad version: '$v'" >&2; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      # A Release may be published before the upload to PyPI finishes; wait up to 15 minutes.
+      - name: Wait for the version on PyPI
+        run: |
+          for i in $(seq 30); do
+            curl -sf "https://pypi.org/pypi/humanin-finder/${{ steps.v.outputs.version }}/json" >/dev/null && exit 0
+            echo "not on PyPI yet ($i/30)"; sleep 30
+          done
+          echo "humanin-finder ${{ steps.v.outputs.version }} is not on PyPI" >&2; exit 1
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build for the test (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: humaninfinder:test
+          build-args: VERSION=${{ steps.v.outputs.version }}
+
+      - name: Test the image
+        run: |
+          docker run --rm humaninfinder:test --version | grep -F "${{ steps.v.outputs.version }}"
+          docker run --rm humaninfinder:test setup
+          mkdir -p out && chmod 777 out
+          docker run --rm -v "$PWD/examples:/in:ro" -v "$PWD/out:/data" humaninfinder:test \
+            predict -i /in/pan_taxonomic_sample.fasta -o pan
+          # Humanin must be found, complete, in the human record of the example
+          grep -P '^Homo_sapiens_16S_locus\t.*Name=Humanin;status=Complete' out/pan_results.gff3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: VERSION=${{ steps.v.outputs.version }}
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.v.outputs.version }}
+            ${{ env.IMAGE }}:latest
