@@ -23,11 +23,9 @@ classifiers = [
 ]
 # No pandas: two small CSV tables do not justify numpy plus tens of megabytes (and a slow conda
 # solve); cli.write_csv writes them with the standard library.
-# Upper bounds are deliberate, not caution. The conservation controls project genomes with
-# Bio.Align.PairwiseAligner and take the first optimal alignment; which one comes first when several
-# tie is an implementation detail, so a major Biopython release could move the reference figures. pyhmmer
-# carries the bundled profile semantics. Both are pinned below the next major version and raised
-# only after tests/test_conservation_regression.py passes against the new release.
+# Upper bounds are deliberate: pyhmmer carries the semantics of the bundled profiles (0.x minor
+# releases may change them), and Biopython and click are held below their next major version.
+# Raise a bound only after the test suite and the validation suite pass against the new release.
 dependencies = [
   "biopython>=1.83,<2",
   "click>=8.1.0,<9",

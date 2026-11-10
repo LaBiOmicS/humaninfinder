@@ -49,18 +49,3 @@ jobs:
           name: distributions
           path: dist/*
 
-  reproducibility:
-    # Guards the reference conservation figures against a dependency bump. The 343-primate cohort is
-    # too large to ship, so this runs the frozen synthetic cohort; see
-    # tests/test_conservation_regression.py.
-    name: frozen conservation figures
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install . pytest
-      - name: Record the exact dependency versions behind the frozen numbers
-        run: pip freeze
-      - run: pytest tests/test_conservation_regression.py -q

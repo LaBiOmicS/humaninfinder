@@ -20,8 +20,8 @@ pip install .
 ```
 
 Requires Python ≥ 3.10, Biopython, click and pyhmmer (HMMER runs in memory; no external binaries are
-needed). Biopython and pyhmmer are pinned below their next major version on purpose: the reference
-conservation figures depend on them (see `tests/test_conservation_regression.py`).
+needed). pyhmmer is pinned below its next minor version on purpose: it carries the semantics of the
+bundled profiles.
 
 Check that the installation and every bundled data file are usable:
 
@@ -45,7 +45,6 @@ Humanin (`MAPRGFSCLLLLTSEIDLPVK`, 21 aa under the mitochondrial code) and SHLP1-
 |---|---|
 | `predict` | Best Humanin frame per genetic code, plus SHLP1-6, for each record. The usual choice for mitogenomes. |
 | `scan` | Every non-redundant locus per record: mitochondrial and NUMT copies in contigs or chromosomes. |
-| `conservation` | Coding-evidence controls over a cohort: does conservation at the Humanin window follow the peptide or the host 16S rRNA? |
 | `lint` | Validate a FASTA file without changing it. |
 | `setup` | Verify the installation and the bundled data files. |
 
@@ -124,32 +123,6 @@ Main CSV columns:
   `genetic_code` is the code the frame was read under. `table_1_pep` is the cytosolic reading of a
   Table 2 sORF that starts with a Table 1 initiator.
 
-## Conservation controls
-
-```sh
-humanin-finder conservation -i cohort.fasta -o cohort --workers 8              # different species
-humanin-finder conservation -i humans.fasta.gz -o humans --population --workers 8   # one species
-```
-
-This command projects each genome onto the bundled rCRS genes (MT-RNR2 and MT-CO1). It does **not** use
-the locus profiles or the Pfam domain, so its result is independent of the locus caller. For the
-Humanin window (rCRS 2633-2695, 21 codons) it reports:
-
-- the share of variation on the third codon position, in the peptide frame and in the two shifted frames;
-- amino-acid identity in the same three frames;
-- the rank of each statistic among every window of equal length across the 16S gene;
-- motif ranks for `CLLL` and `TSEIDLPVK`;
-- whether the downstream segment relaxes in genomes with an upstream stop.
-
-MT-CO1 is the positive control. The full record goes to `<prefix>_conservation.json`.
-
-Limits:
-
-- Variation is counted per site, without phylogenetic correction.
-- The null windows overlap, so the ranks describe the data and are not a test.
-- A 21-codon window has little power. A negative result means "no signal distinguishable from the rRNA
-  background", not "no selection".
-
 ## Limitations
 
 - Evidence is homology only: position in MT-RNR2 and/or the PF15040 domain. Expression and function
@@ -165,10 +138,8 @@ Limits:
 ```sh
 pip install -e . pytest ruff
 ruff check src tests
-pytest                     # a few minutes; most of it is the conservation tests
+pytest
 ```
-
-To run the regression test on the 343-primate cohort, set `HUMANINFINDER_PRIMATES343` to its FASTA file.
 
 ## Citation
 

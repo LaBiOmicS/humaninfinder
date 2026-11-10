@@ -26,5 +26,5 @@
   "version": "1.0.0b1",
   "publication_date": "2026-11-09",
   "access_right": "open",
-  "notes": "Beta release accompanying a manuscript in preparation. The conservation controls' reference figures are frozen in tests/test_conservation_regression.py; see the upper bounds on biopython and pyhmmer in pyproject.toml."
+  "notes": "Beta release accompanying a manuscript in preparation."
 }

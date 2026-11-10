@@ -27,7 +27,7 @@ requirements:
     - setuptools >=68
   run:
     - python >=3.10
-    # Same bounds as pyproject.toml: the reference conservation figures depend on them
+    # Same bounds as pyproject.toml
     - biopython >=1.83,<2
     - click >=8.1.0,<9
     - pyhmmer >=0.12.0,<0.13
@@ -43,7 +43,6 @@ test:
     - examples
   imports:
     - humanin_finder
-    - humanin_finder.conservation
   commands:
     - humanin-finder --help
     - humanin-finder --version

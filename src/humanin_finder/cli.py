@@ -15,7 +15,6 @@ import click
 from Bio import SeqIO
 
 from . import __version__
-from .conservation import analyse_cohort, format_summary, write_report
 from .core import (
     STATUS_COMPLETE,
     STATUS_INTERRUPTED,
@@ -759,53 +758,6 @@ def scan(
 
 
 @main.command()
-@click.option("--input", "-i", required=True, type=click.Path(exists=True, path_type=Path), help="Cohort FASTA.")
-@click.option("--output", "-o", required=True, help="Output prefix.")
-@click.option(
-    "--population",
-    is_flag=True,
-    help="Cohort of one species: count segregating sites and align globally by rCRS coordinates.",
-)
-@click.option("--workers", default=1, show_default=True, type=click.IntRange(1, 64), help="Parallel processes.")
-@click.option("--limit", default=0, type=click.IntRange(0), help="Use only the first N sequences (0 = all).")
-@click.option(
-    "--reference",
-    type=click.Path(exists=True, path_type=Path),
-    default=None,
-    help="Override the bundled rCRS reference genes.",
-)
-def conservation(input, output, population, workers, limit, reference):
-    """Test whether conservation at the Humanin window tracks the peptide or the host 16S rRNA.
-
-    Runs the codon-position, shifted-frame and rRNA-null controls over a cohort of genomes, with
-    MT-CO1 as the positive control. This command does NOT use the MT-RNR2 profiles or the Pfam
-    domain: it aligns each genome to the bundled rCRS reference genes, so the result is independent
-    of how the locus caller behaves.
-    """
-    click.echo(f"[*] HumaninFinder v{__version__}: {' '.join(sys.argv)}")
-    click.echo(f"[*] Coding-evidence controls over {input}...")
-    record = analyse_cohort(
-        input,
-        population=population,
-        reference_path=reference,
-        workers=workers,
-        limit=limit,
-    )
-    path = write_report(record, output)
-    click.echo("")
-    click.echo(format_summary(record))
-    write_run_provenance(
-        output,
-        input,
-        {"population": population, "workers": workers, "limit": limit, "reference": str(reference or "bundled")},
-        record["genomes"],
-    )
-    click.echo("")
-    click.echo(f"[+] Report:     {path}")
-    click.echo(f"[+] Run record: {output}_run.json")
-
-
-@main.command()
 @click.argument("input", type=click.Path(exists=True, path_type=Path))
 def lint(input):
     """Validate FASTA formatting and compliance without modifying it."""
@@ -830,14 +782,13 @@ def lint(input):
 def setup():
     """Verify system prerequisites and every bundled data file.
 
-    Checks all of them, not only the locus profiles: a package whose PF15040.hmm, SHLP references or
-    conservation reference failed to install would otherwise pass this command and then fail, or
-    silently under-report, in the middle of a run.
+    Checks all of them, not only the locus profiles: a package whose PF15040.hmm or SHLP references
+    failed to install would otherwise pass this command and then fail, or silently under-report, in the
+    middle of a run.
     """
     click.echo(f"[*] Verifying HumaninFinder v{__version__} prerequisites...")
     import pyhmmer
 
-    from .conservation import DEFAULT_REFERENCE, GENE_COORDS, load_reference
     from .core import DATA_DIR, DEFAULT_HUMANIN_HMM, get_gathering_threshold, load_locus_profiles
     from .shlp import SHLP_REF_PATH, load_shlp_references
 
@@ -861,17 +812,6 @@ def setup():
         else:
             click.secho(f"[+] SHLP references: {', '.join(sorted(shlps))}.", fg="green")
 
-    try:
-        ref = load_reference()
-        missing = sorted(set(GENE_COORDS) - set(ref))
-        if missing:
-            failures.append(f"conservation reference lacks {', '.join(missing)}")
-        else:
-            sizes = ", ".join(f"{g} {len(ref[g])} nt" for g in sorted(ref))
-            click.secho(f"[+] Conservation reference ({DEFAULT_REFERENCE.name}): {sizes}.", fg="green")
-    except (OSError, ValueError) as err:
-        failures.append(f"conservation reference unreadable: {err}")
-
     orphans = sorted(
         p.name
         for p in DATA_DIR.iterdir()
@@ -880,7 +820,6 @@ def setup():
         not in {
             DEFAULT_HUMANIN_HMM.name,
             SHLP_REF_PATH.name,
-            DEFAULT_REFERENCE.name,
             "MT-RNR2.hmm",
             "Humanin_core.hmm",
             "mdp_locus_profiles.json",
