@@ -12,6 +12,7 @@
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#project-status)
 
 [Website](https://labiomics.github.io/humaninfinder/) •
+[Background](#background-humanin-and-the-shlps) •
 [Run in the browser](https://labiomics.github.io/humaninfinder/app/) •
 [Installation](#installation) •
 [Quick start](#quick-start) •
@@ -39,6 +40,68 @@ position. Every reported frame states which evidence supports it and how far tha
 > [!IMPORTANT]
 > All evidence produced by HumaninFinder is **in silico homology**. A reported frame is a candidate:
 > HumaninFinder makes no claim that a peptide is transcribed, translated or functional.
+
+### Background: Humanin and the SHLPs
+
+**Humanin** was discovered in 2001 in a screen for genes that protect neurons: its cDNA, a short
+secreted polypeptide, abolished the neuronal death caused by familial Alzheimer's disease genes and
+by amyloid-β [1]. It was found again as a partner of Bax that keeps this pro-apoptotic protein from
+moving to mitochondria, with an identical open reading frame in the mitochondrial genome [2], and as a
+partner of IGFBP-3 [3]. Outside the cell it acts through the receptor FPRL1 [4] and a receptor complex
+of CNTFR, WSX-1 and gp130 [5].
+
+Humanin was the first **mitochondrial-derived peptide** (MDP): a peptide encoded by a short open
+reading frame in mitochondrial DNA. Others followed, such as MOTS-c in the 12S rRNA gene [6] and the
+six **small humanin-like peptides** (SHLP1-6), found by an in silico search of the same 16S rRNA region
+as Humanin [7]. The SHLPs differ in their effects on cell viability. SHLP2 and SHLP3 share Humanin's
+protective effects, reducing apoptosis and reactive oxygen species, and SHLP2 acts as an insulin
+sensitiser [7]. Circulating Humanin and SHLP2 both fall with age [7]. Humanin improves cognition in aged
+mice, and a human variant in its coding region (rs2854128) is associated with lower circulating Humanin
+and faster cognitive ageing [8]. Reviews place the MDPs in the biology of ageing and age-related
+disease [9].
+
+Two features make these peptides hard to study at the sequence level. They overlap a structural RNA,
+so they are invisible to standard genome annotation. And `MT-RNR2` has many nuclear copies: at least
+13 nuclear loci keep a Humanin-like frame, and most are expressed [10], so a read, a primer or an
+antibody may come from a NUMT rather than from the mitochondrion. Evolutionary questions, such as the
+evidence of natural selection reported for Humanin and SHLP6 [11], need each frame located in many
+species and assigned to its genome of origin. HumaninFinder is built for that step.
+
+<details>
+<summary>References</summary>
+
+1. Hashimoto Y, *et al.* A rescue factor abolishing neuronal cell death by a wide spectrum of familial
+   Alzheimer's disease genes and Aβ. *PNAS* 2001;98:6336-6341.
+   [doi:10.1073/pnas.101133498](https://doi.org/10.1073/pnas.101133498)
+2. Guo B, *et al.* Humanin peptide suppresses apoptosis by interfering with Bax activation. *Nature*
+   2003;423:456-461. [doi:10.1038/nature01627](https://doi.org/10.1038/nature01627)
+3. Ikonen M, *et al.* Interaction between the Alzheimer's survival peptide humanin and insulin-like
+   growth factor-binding protein 3 regulates cell survival and apoptosis. *PNAS* 2003;100:13042-13047.
+   [doi:10.1073/pnas.2135111100](https://doi.org/10.1073/pnas.2135111100)
+4. Ying G, *et al.* Humanin, a newly identified neuroprotective factor, uses the G protein-coupled
+   formylpeptide receptor-like-1 as a functional receptor. *J Immunol* 2004;172:7078-7085.
+   [doi:10.4049/jimmunol.172.11.7078](https://doi.org/10.4049/jimmunol.172.11.7078)
+5. Hashimoto Y, *et al.* Humanin inhibits neuronal cell death by interacting with a cytokine receptor
+   complex or complexes involving CNTF receptor α/WSX-1/gp130. *Mol Biol Cell* 2009;20:2864-2873.
+   [doi:10.1091/mbc.e09-02-0168](https://doi.org/10.1091/mbc.e09-02-0168)
+6. Lee C, *et al.* The mitochondrial-derived peptide MOTS-c promotes metabolic homeostasis and reduces
+   obesity and insulin resistance. *Cell Metab* 2015;21:443-454.
+   [doi:10.1016/j.cmet.2015.02.009](https://doi.org/10.1016/j.cmet.2015.02.009)
+7. Cobb LJ, *et al.* Naturally occurring mitochondrial-derived peptides are age-dependent regulators of
+   apoptosis, insulin sensitivity, and inflammatory markers. *Aging* 2016;8:796-809.
+   [doi:10.18632/aging.100943](https://doi.org/10.18632/aging.100943)
+8. Yen K, *et al.* Humanin prevents age-related cognitive decline in mice and is associated with
+   improved cognitive age in humans. *Sci Rep* 2018;8:14212.
+   [doi:10.1038/s41598-018-32616-7](https://doi.org/10.1038/s41598-018-32616-7)
+9. Kim SJ, *et al.* Mitochondrial-derived peptides in aging and age-related diseases. *GeroScience*
+   2021;43:1113-1121. [doi:10.1007/s11357-020-00262-5](https://doi.org/10.1007/s11357-020-00262-5)
+10. Bodzioch M, *et al.* Evidence for potential functionality of nuclearly-encoded humanin isoforms.
+    *Genomics* 2009;94:247-256. [doi:10.1016/j.ygeno.2009.05.006](https://doi.org/10.1016/j.ygeno.2009.05.006)
+11. Gruschus JM, *et al.* Evidence of natural selection in the mitochondrial-derived peptides humanin
+    and SHLP6. *Sci Rep* 2023;13:14110.
+    [doi:10.1038/s41598-023-41053-0](https://doi.org/10.1038/s41598-023-41053-0)
+
+</details>
 
 ### Features
 
