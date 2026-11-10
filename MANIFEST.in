@@ -8,3 +8,4 @@ include recipe/meta.yaml
 include CITATION.cff
 include .zenodo.json
 recursive-include .github *.yml
+include environment.yml

@@ -98,6 +98,18 @@ cd humaninfinder
 pip install .
 ```
 
+**From source, in a conda environment**
+
+[`environment.yml`](environment.yml) creates an environment named `humaninfinder` with every
+dependency from conda-forge and Bioconda, plus pytest and ruff, and installs the clone in editable mode:
+
+```sh
+git clone https://github.com/LaBiOmicS/humaninfinder.git
+cd humaninfinder
+micromamba env create -f environment.yml    # or: conda env create -f environment.yml
+micromamba activate humaninfinder
+```
+
 Then check that the installation and every bundled data file are usable:
 
 ```console
@@ -307,7 +319,7 @@ command-line interface and output formats are expected to stay stable, but they 
 ```sh
 git clone https://github.com/LaBiOmicS/humaninfinder.git
 cd humaninfinder
-pip install -e . pytest ruff
+pip install -e . pytest ruff     # or: micromamba env create -f environment.yml
 ruff check src tests
 pytest
 ```
@@ -325,6 +337,7 @@ src/humanin_finder/
 examples/           # rCRS reference mitogenome and a small test set
 tests/              # unit and regression tests
 recipe/             # Bioconda recipe
+environment.yml     # conda environment for a clone
 ```
 
 ### Contributing
