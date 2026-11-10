@@ -51,14 +51,14 @@
           "orientation": -1,
           "reference_orf": "ATGTACTGCTCGGAGGTTGGGTTCTGCTCCGAGGTCGCCCCAACCGAAATTTTTAATGCAGGTTTGGTAGTT",
           "reference_codons": 24,
-          "primary_translation_table": 2,
+          "primary_translation_table": 1,
           "state": 1253
         },
         "SHLP6": {
           "orientation": 1,
           "reference_orf": "ATGTTGGATCAGGACATCCCGATGGTGCAGCCGCTATTAAAGGTTCGTTTGTTCAACGAT",
           "reference_codons": 20,
-          "primary_translation_table": 2,
+          "primary_translation_table": 1,
           "state": 1403
         }
       },

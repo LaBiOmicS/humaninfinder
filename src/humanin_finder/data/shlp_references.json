@@ -6,7 +6,7 @@
     "E1": "In silico with homologous conservation across clades",
     "E2": "Transcriptional expression verified (RT-PCR/RNA-seq)",
     "E3": "Protein/peptide detected via antibody/mass spectrometry",
-    "E4": "Exogenous biological activity and receptor signaling verified"
+    "E4": "Exogenous biological activity shown (cell or animal assays)"
   },
   "shlp_peptides": {
     "SHLP1": {
@@ -63,7 +63,7 @@
       "primary_translation_table": 1,
       "mitochondrial_table_2_sequence": "MLEVMFLVN*RGKICRVPFTFFNLSL",
       "has_mitochondrial_table_2_premature_stop": true,
-      "cobb_2016_evidence_level": "E3"
+      "cobb_2016_evidence_level": "E4"
     },
     "SHLP5": {
       "peptide_sequence_canonical": "MYCSEVGFCSEVAPTEIFNAGLVV",
@@ -74,7 +74,7 @@
       "end_0based": 2854,
       "start_1based": 2783,
       "end_1based": 2854,
-      "primary_translation_table": 2,
+      "primary_translation_table": 1,
       "mitochondrial_table_2_sequence": "MYCSEVGFCSEVAPTEIFNAGLVV",
       "has_mitochondrial_table_2_premature_stop": false,
       "cobb_2016_evidence_level": "E2"
@@ -88,10 +88,12 @@
       "end_0based": 3049,
       "start_1based": 2990,
       "end_1based": 3049,
-      "primary_translation_table": 2,
+      "primary_translation_table": 1,
       "mitochondrial_table_2_sequence": "MLDQDIPMVQPLLKVRLFND",
       "has_mitochondrial_table_2_premature_stop": false,
-      "cobb_2016_evidence_level": "E3"
+      "cobb_2016_evidence_level": "E4"
     }
-  }
+  },
+  "translation_table_note": "SHLP1-4 match their published sequences only under Table 1 (cytosolic code: internal AGA/AGG or ATA codons), so the family is read under Table 1. SHLP5 and SHLP6 give the same human peptide under Tables 1 and 2 and are read under Table 1 as well; Cobb et al. 2016 do not state a genetic code. Under Table 2 an AGG at SHLP6 codon 14 would interrupt the frame in most non-hominid primates, against its reported conservation (Gruschus et al. 2023, Sci Rep 13:14110).",
+  "evidence_note": "Tiers from Cobb et al. 2016: SHLP1 protein detected (E3); SHLP2 and SHLP3 viability/apoptosis, respiration and (SHLP2) insulin sensitivity (E4); SHLP4 proliferation of NIT-1 beta-cells (E4); SHLP5 RT-PCR only, no antibody could be raised (E2); SHLP6 increased apoptosis (E4)."
 }

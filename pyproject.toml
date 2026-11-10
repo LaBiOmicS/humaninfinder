@@ -21,12 +21,11 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
-# pandas was dropped in 1.0.0b1: it cost numpy plus tens of megabytes (and a slow conda solve) to
-# write two small CSV tables, which cli.write_csv now does with the standard library, byte for byte
-# identical to the published cohort tables.
+# No pandas: two small CSV tables do not justify numpy plus tens of megabytes (and a slow conda
+# solve); cli.write_csv writes them with the standard library.
 # Upper bounds are deliberate, not caution. The conservation controls project genomes with
 # Bio.Align.PairwiseAligner and take the first optimal alignment; which one comes first when several
-# tie is an implementation detail, so a major Biopython release could move published figures. pyhmmer
+# tie is an implementation detail, so a major Biopython release could move the reference figures. pyhmmer
 # carries the bundled profile semantics. Both are pinned below the next major version and raised
 # only after tests/test_conservation_regression.py passes against the new release.
 dependencies = [

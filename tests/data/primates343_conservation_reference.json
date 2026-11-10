@@ -1,11 +1,11 @@
 {
- "_cohort_sha256": "see analysis_primates/primates_343.fasta; set HUMANINFINDER_PRIMATES343 to its path",
+ "_cohort_sha256": "fd174b33439dcd652b640d7044f364d268317ec53d4a775a7173688f4074c26a",
  "_produced_with": {
   "biopython": "1.88",
   "humanin_finder": "1.0.0b1",
   "python": "3.12.14"
  },
- "_what": "Published conservation numbers for the 343-primate cohort, frozen so that a change in Biopython's pairwise tie-breaking or in this module cannot alter the paper's figures without a test failing.",
+ "_what": "Reference conservation numbers for the 343-primate cohort, frozen so that a change in Biopython's pairwise tie-breaking or in this module cannot alter the paper's figures without a test failing.",
  "by_frame": {
   "peptide": {
    "aa_identity": 0.8083418183454317,

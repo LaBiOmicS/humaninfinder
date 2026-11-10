@@ -17,7 +17,6 @@ from Bio import SeqIO
 from . import __version__
 from .conservation import analyse_cohort, format_summary, write_report
 from .core import (
-    MITOCHONDRIAL_TABLES,
     STATUS_COMPLETE,
     STATUS_INTERRUPTED,
     calculate_overlap,
@@ -108,7 +107,7 @@ def write_run_provenance(
 ) -> dict[str, Any]:
     """Write ``{prefix}_run.json`` recording exactly how this run was invoked.
 
-    Written so that a result can be traced back to the command that produced it: the published
+    Written so that a result can be traced back to the command that produced it: the
     tables of a cohort are reproducible only if the subcommand and options are known (``scan`` and
     ``predict`` legitimately give different row counts on the same input).
 
@@ -150,11 +149,8 @@ def _csv_cell(value: Any, as_float: bool) -> str:
 def write_csv(rows: list[dict[str, Any]], columns: list[str], path: str) -> None:
     """Write ``rows`` as CSV over ``columns`` with the standard library.
 
-    This replaced ``pandas.DataFrame(rows).to_csv(index=False)`` and keeps its output, with one
-    deliberate exception fixed in 1.0.0b1: pandas turned an integer column holding any ``None`` into
-    float64, so ``start_offset_codons`` was written as ``-1.0``. A codon offset is an integer, so
-    integer columns are now written as integers whether or not they have empty cells. Columns that
-    hold real floats keep ``str(float)`` for every value. Otherwise: empty field for ``None``,
+    Integer columns are written as integers even when some cells are empty (a codon offset is never
+    ``-1.0``). Columns that hold real floats get ``str(float)`` for every value. Otherwise: empty field for ``None``,
     ``True``/``False`` for booleans, ``str`` otherwise, minimal quoting, ``\n`` line endings.
     """
     # Per column: format as float only when the column holds a real float (bools are not numeric).
@@ -543,20 +539,14 @@ def run_pipeline(
             # 3. Non-redundant filtering
             nr_cands = filter_non_redundant(candidates)
 
-            # 4. SHLP1–6 by their MT-RNR2 position, each in its primary (literature) translation context
+            # 4. SHLP1–6 by their MT-RNR2 position, each under its translation table (Table 1; shlp_references.json)
             shlp_rows: list[dict[str, Any]] = []
             if enable_shlp and enable_synteny:
                 # A start codon inside a deletion or an assembly gap yields no frame, so the peptide
                 # is absent from the table. Record that, or it cannot be told from a missing locus.
                 for gap in locus_gap_report(full_seq, circular=record_circular):
                     gap_rows.append({"sample_id": rec_id, **gap})
-                # In a nuclear record SHLPs of mitochondrial primary context are read under the
-                # nuclear code: a NUMT copy is not translated by the mitochondrial machinery. A record
-                # is nuclear when it is large or when no requested code is mitochondrial (e.g. -g 1).
-                nuclear_codes = [t for t in table_ids if t not in MITOCHONDRIAL_TABLES]
-                is_nuclear = is_large_genome or len(nuclear_codes) == len(table_ids)
-                nuclear_table = (nuclear_codes or [1])[0] if is_nuclear else None
-                for sh in annotate_shlps(full_seq, circular=record_circular, nuclear_table=nuclear_table):
+                for sh in annotate_shlps(full_seq, circular=record_circular):
                     shlp_rows.append(
                         {
                             "sample_id": rec_id,

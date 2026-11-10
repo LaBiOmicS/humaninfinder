@@ -60,3 +60,12 @@ def test_shipped_table_2_readings_are_the_translation_of_the_reference_orfs():
         assert meta["peptide_sequence_canonical"] == primary, name
         assert meta["mitochondrial_table_2_sequence"] == t2, name
         assert meta["has_mitochondrial_table_2_premature_stop"] == ("*" in t2), name
+
+
+def test_reference_file_and_locus_profiles_agree_on_the_translation_table():
+    """The table the caller reads (profile JSON) and the one documented (references JSON) must not drift."""
+    from humanin_finder.core import load_locus_profiles
+
+    profile = load_locus_profiles()["MT-RNR2"]["peptides"]
+    for name, meta in load_shlp_references()["shlp_peptides"].items():
+        assert profile[name]["primary_translation_table"] == meta["primary_translation_table"] == 1, name

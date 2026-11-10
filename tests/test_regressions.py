@@ -495,43 +495,21 @@ def test_pf15040_evalue_does_not_depend_on_record_length():
     assert short["e_value"] == pytest.approx(long_["e_value"], rel=1e-9)
 
 
-def test_numt_reads_mitochondrial_context_shlps_under_the_nuclear_code(tmp_path):
-    """In a nuclear record SHLP5/SHLP6 are read under the nuclear code, not under Table 2.
+def test_every_shlp_is_read_under_the_cytosolic_code():
+    """SHLP1-6 are all read under Table 1, whatever code the record is read under.
 
-    A NUMT copy is not translated by the mitochondrial machinery. A TGA placed in the SHLP6 frame
-    reads as W under Table 2 and as a stop under Table 1, which tells the two readings apart.
+    SHLP1-4 match their published sequences only under Table 1. SHLP5-6 give the same human peptide
+    under Tables 1 and 2 and were once read under Table 2; then the AGG that most non-hominid
+    primates carry at SHLP6 codon 14 cut the frame, and SHLP6 came out ``Interrupted`` in 151 of 343
+    primates although it is the best-conserved MDP (Gruschus et al. 2023). Cobb et al. 2016 name no code.
     """
     seq = _rcrs()
-    numt = seq[1500:3400]
-    shlp6 = locate_mdp_loci(seq, peptides=["SHLP6"])[0]
-    pos = shlp6["start"] - 1500 + 3 * 5  # sixth codon of SHLP6 (forward strand)
-    numt = numt[:pos] + "TGA" + numt[pos + 3 :]
+    loci = {lc["name"]: lc for lc in locate_mdp_loci(seq, table=2) if lc["name"].startswith("SHLP")}
+    assert {lc["table"] for lc in loci.values()} == {1}
 
-    mito = {lc["name"]: lc for lc in locate_mdp_loci(numt, peptides=["SHLP5", "SHLP6"])}
-    nuclear = {lc["name"]: lc for lc in locate_mdp_loci(numt, peptides=["SHLP5", "SHLP6"], nuclear_table=1)}
-    assert mito["SHLP6"]["table"] == 2 and "*" not in mito["SHLP6"]["seq"]
-    assert nuclear["SHLP6"]["table"] == 1 and nuclear["SHLP6"]["seq"] != mito["SHLP6"]["seq"]
-    assert nuclear["SHLP5"]["table"] == 1
-
-    chrom = _random_dna(30_000, seed=3) + numt + _random_dna(30_000, seed=4)
-    fasta = tmp_path / "chr.fasta"
-    fasta.write_text(">chrN synthetic\n" + chrom + "\n")
-    prefix = str(tmp_path / "chr")
-    result = CliRunner().invoke(main, ["scan", "-i", str(fasta), "-o", prefix])
-    assert result.exit_code == 0, result.output
-    codes = {r["name"]: r["genetic_code"] for r in csv.DictReader(open(f"{prefix}_results.csv"))}
-    assert codes["SHLP5"] == codes["SHLP6"] == "1"
-
-
-def test_short_record_read_only_under_the_nuclear_code_is_nuclear(tmp_path):
-    """``-g 1`` on a short contig declares it nuclear, so SHLP5/SHLP6 follow the nuclear code too."""
-    fasta = tmp_path / "contig.fasta"
-    fasta.write_text(">contig short NUMT contig\n" + _rcrs()[1500:3400] + "\n")
-    codes = {}
-    for table in ("1", "2"):
-        prefix = str(tmp_path / f"t{table}")
-        result = CliRunner().invoke(main, ["predict", "-i", str(fasta), "-o", prefix, "-g", table])
-        assert result.exit_code == 0, result.output
-        codes[table] = {r["name"]: r["genetic_code"] for r in csv.DictReader(open(f"{prefix}_results.csv"))}
-    assert codes["1"]["SHLP5"] == codes["1"]["SHLP6"] == "1"
-    assert codes["2"]["SHLP5"] == codes["2"]["SHLP6"] == "2"
+    shlp6 = loci["SHLP6"]
+    codon14 = shlp6["start"] + 3 * 13  # SHLP6 lies on the forward strand
+    assert seq[codon14 : codon14 + 3] == "AAG"
+    primate_like = seq[:codon14] + "AGG" + seq[codon14 + 3 :]
+    read = next(lc for lc in locate_mdp_loci(primate_like, table=2, peptides=["SHLP6"]))
+    assert read["status"] == "Complete" and read["seq"] == "MLDQDIPMVQPLLRVRLFND"

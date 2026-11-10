@@ -7,7 +7,7 @@ share, the window's rank inside the 16S null, the motif ranks -- is computed fro
 
 Property tests (``test_conservation.py``) check that the controls still have power: the MT-CO1
 positive control must separate the true frame, unstructured rRNA variation must leave pos3_share near
-1/3. They would all still pass if the projection shifted and every published figure moved with it.
+1/3. They would all still pass if the projection shifted and every reference figure moved with it.
 These tests close that gap by pinning the figures themselves.
 
 If one of them fails, the numbers in the manuscript no longer match what the code produces. That is
@@ -156,7 +156,7 @@ def test_frozen_positive_control(analysed):
     assert pc["pos3_share_off_frame_median"] == pytest.approx(FROZEN["positive_control"]["off_frame"], rel=REL)
 
 
-def test_the_published_primate_cohort_still_gives_the_published_numbers():
+def test_the_primate_cohort_still_gives_the_reference_numbers():
     """The real check, when the cohort is at hand: 343 primate mitogenomes, as reported.
 
     The FASTA is far too large to ship, so point ``HUMANINFINDER_PRIMATES343`` at it to run this.

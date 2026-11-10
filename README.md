@@ -20,7 +20,7 @@ pip install .
 ```
 
 Requires Python ≥ 3.10, Biopython, click and pyhmmer (HMMER runs in memory; no external binaries are
-needed). Biopython and pyhmmer are pinned below their next major version on purpose: the published
+needed). Biopython and pyhmmer are pinned below their next major version on purpose: the reference
 conservation figures depend on them (see `tests/test_conservation_regression.py`).
 
 Check that the installation and every bundled data file are usable:
@@ -70,12 +70,14 @@ Humanin (`MAPRGFSCLLLLTSEIDLPVK`, 21 aa under the mitochondrial code) and SHLP1-
    of every peptide. The threshold is calibrated above the paralogous bacterial and plastid 23S and
    nuclear 28S rRNAs.
 2. **Frame.** The species' own ORF is read from the start codon nearest the mapped one (within 6
-   codons either way). Humanin is read under the requested code. Each SHLP is read under its primary
-   code from Cobb et al. 2016: Table 1 for SHLP1-4, Table 2 for SHLP5-6. In nuclear records (> 50 kb,
-   or read only under non-mitochondrial codes, e.g. `-g 1`) SHLP5-6 are read under the nuclear code instead, because a NUMT copy is not translated by the
-   mitochondrial machinery. The `genetic_code` column shows the code each frame was read under.
+   codons either way). Humanin is read under the requested code. SHLP1-6 are read under the
+   cytosolic code (Table 1) in every record: SHLP1-4 give their published sequences only under it,
+   and SHLP5-6, identical under Tables 1 and 2 in human, follow the family. Cobb et al. 2016 do not
+   name a code; the reasoning is recorded in `shlp_references.json` (`translation_table_note`).
 3. **Status** (structure only, no functional claim):
-   - `Complete`: start codon through an in-frame stop.
+   - `Complete`: start codon through an in-frame stop. The start is the species' own and may sit
+     up to 6 codons from the human one (`start_offset_codons`), with any initiator of the code, so
+     `Complete` does not mean the human start codon is conserved.
    - `Incomplete`: no start codon, or no stop within 60 codons.
    - `Interrupted`: an in-frame stop inside the homologous span under the evaluated code.
 4. **Name** (how far the evidence goes):
@@ -113,8 +115,9 @@ Main CSV columns:
   `hmm_evalue` is the E-value of a single comparison (Z = 1), so the same domain gets the same value in
   a short or a long record.
 - **Evidence:** `evidence_source` (`Synteny`, `HMM` or both) and `evidence_tier` (`E1`, in silico
-  homology). `reference_evidence_tier` is the literature tier of the human peptide, given only for a
-  `Complete` frame identical to it.
+  homology). `reference_evidence_tier` is the literature tier of the human peptide (Cobb et al. 2016:
+  E2 transcript, E3 protein detected, E4 exogenous activity; SHLP1 E3, SHLP2-4 and SHLP6 E4, SHLP5 E2),
+  given only for a `Complete` frame identical to it.
 - **Comparison with human:** `identity_to_reference` is the ungapped identity of the homologous span to
   the human peptide. It is descriptive only and does not enter the status.
 - **Reading:** `start_offset_codons` is where the local start lies relative to the mapped human start.

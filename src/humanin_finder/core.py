@@ -844,7 +844,6 @@ def locate_mdp_loci(
     max_len: int = 60,
     cpus: int = 1,
     circular: bool = False,
-    nuclear_table: int | None = None,
 ) -> list[dict[str, Any]]:
     """Locate mitochondrial-derived peptide loci (Humanin, SHLP1-6) by their position in MT-RNR2.
 
@@ -852,10 +851,10 @@ def locate_mdp_loci(
     searched with nhmmer on both strands; each hit at or above ``min_score`` (default: the profile's
     evidence threshold, calibrated above the paralogous bacterial/plastid 23S and nuclear 28S rRNAs)
     maps the start codon of each peptide of that profile. The frame is then read as the species' own
-    ORF (``_read_locus_frame``): Humanin under ``table``, each SHLP under its primary translation
-    table (Cobb et al. 2016). A locus already found by an earlier profile is not repeated. Loci are
-    sorted by decreasing ``synteny_score`` (bitscore of the profile that found them, named in
-    ``locus_profile``).
+    ORF (``_read_locus_frame``): Humanin under ``table``, each SHLP under the ``primary_translation_table``
+    of its profile entry (Table 1 for all six; see ``shlp_references.json``). A locus already found by
+    an earlier profile is not repeated. Loci are sorted by decreasing ``synteny_score`` (bitscore of
+    the profile that found them, named in ``locus_profile``).
 
     ``locus_density`` is the bitscore per aligned profile column. ``vertebrate_like`` is True when it
     reaches the profile's ``vertebrate_min_density`` (calibrated between non-vertebrate controls and the
@@ -866,10 +865,6 @@ def locate_mdp_loci(
     read through it instead of being missed or reported cut at the end of the record. Such a locus
     has ``circular_wrap`` True and, following the GFF3 convention for circular landmarks, ``start``
     inside the record and ``end`` beyond its length. Every locus carries ``circular_wrap``.
-
-    ``nuclear_table``: the record is nuclear (a NUMT-bearing contig or chromosome). A peptide whose
-    primary translation context is mitochondrial (SHLP5, SHLP6) cannot be made there by the
-    mitochondrial machinery, so it is read under this cytosolic code instead.
     """
     seq_str = str(dna_seq).upper()
     seq_len = len(seq_str)
@@ -891,8 +886,6 @@ def locate_mdp_loci(
                 oriented[strand] = str(Seq(search).reverse_complement())
             pep = peps[name]
             pep_table = pep["primary_translation_table"] or table
-            if nuclear_table is not None and int(pep_table) in MITOCHONDRIAL_TABLES:
-                pep_table = nuclear_table
             locus = _read_locus_frame(
                 oriented[strand],
                 t_start,
@@ -999,11 +992,8 @@ def locate_humanin_loci(
     homologous span to the human peptide; neither enters the status. Loci are sorted by decreasing
     ``synteny_score``.
 
-    A single-sequence rCRS anchor aligned pairwise was once offered here as ``method="pairwise"``.
-    It was removed in 1.0.0b1: it could not measure profile density, so it reported
-    ``vertebrate_like=None``, and the human rCRS Humanin then came out named ``Humanin_position`` --
-    asserting "homologous position only" about the very sequence the threshold was calibrated on.
-    Two independent locus finders also meant two things to keep in agreement for no stated benefit.
+    There is deliberately no pairwise (single rCRS anchor) alternative: it cannot measure profile
+    density, so it could not say whether a locus is vertebrate-like (see ``mdp_display_name``).
     """
     loci = locate_mdp_loci(
         dna_seq,
