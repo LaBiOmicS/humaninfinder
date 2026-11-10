@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HumaninFinder Web</title>
+<meta name="description" content="Run HumaninFinder in your browser: locate and annotate Humanin and SHLP1-6 in mitochondrial sequences. Your data never leaves your computer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23123b37'/%3E%3Crect x='5' y='15' width='22' height='3' rx='1.5' fill='%23cfe3df'/%3E%3Crect x='17' y='9' width='5' height='4' rx='1' fill='%232bb5a3'/%3E%3Crect x='8' y='20' width='5' height='4' rx='1' fill='%23e08a2c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f5f0; --paper: #fffdf9; --ink: #142321; --ink-2: #3c4d4a; --muted: #6a7a76;
+  --line: #e2ded4; --line-2: #ece8df; --teal: #0e7c6f; --teal-ink: #0a5d54; --teal-soft: #e1f0ec;
+  --amber: #c26a12; --amber-soft: #f9ead8; --red: #b4232c; --red-soft: #fbe5e6;
+  --dark: #102422; --dark-text: #dfeae7; --dark-muted: #8ea8a2;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1615; --paper: #12201e; --ink: #e5eeeb; --ink-2: #bccbc7; --muted: #8aa09b;
+    --line: #22332f; --line-2: #1b2a28; --teal: #3cc7b2; --teal-ink: #6fdcca; --teal-soft: #12302c;
+    --amber: #f0a04b; --amber-soft: #33240f; --red: #f07178; --red-soft: #3a1618; --dark: #081110;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1615; --paper: #12201e; --ink: #e5eeeb; --ink-2: #bccbc7; --muted: #8aa09b;
+  --line: #22332f; --line-2: #1b2a28; --teal: #3cc7b2; --teal-ink: #6fdcca; --teal-soft: #12302c;
+  --amber: #f0a04b; --amber-soft: #33240f; --red: #f07178; --red-soft: #3a1618; --dark: #081110;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: var(--teal); }
+code, .mono { font-family: var(--mono); }
+code { font-size: .86em; background: var(--line-2); padding: .1em .4em; border-radius: 5px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 720px) { .wrap { padding: 0 28px; } }
+
+.nav { border-bottom: 1px solid var(--line); background: var(--bg); }
+.nav .wrap { display: flex; align-items: center; height: 60px; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; }
+.brand svg { width: 28px; height: 28px; }
+.brand small { font: 600 .72rem var(--mono); color: var(--teal-ink); background: var(--teal-soft); border-radius: 6px; padding: 1px 7px; }
+.nav-links { margin-left: auto; display: flex; gap: 18px; align-items: center; }
+.nav-links a { color: var(--ink-2); text-decoration: none; font-size: .93rem; font-weight: 500; }
+.icon-btn { background: none; border: 1px solid var(--line); border-radius: 9px; width: 36px; height: 36px; display: grid; place-items: center; color: var(--ink-2); cursor: pointer; }
+.icon-btn svg { width: 17px; height: 17px; }
+
+.intro { padding: 36px 0 22px; }
+.intro h1 { font-size: clamp(1.7rem, 3.6vw, 2.4rem); letter-spacing: -.03em; line-height: 1.15; margin: 0 0 8px; }
+.intro p { margin: 0; color: var(--ink-2); max-width: 760px; }
+.privacy { display: inline-flex; gap: 8px; align-items: center; margin-top: 14px; font-size: .88rem; color: var(--teal-ink); background: var(--teal-soft); padding: 5px 12px; border-radius: 999px; }
+.privacy svg { width: 15px; height: 15px; }
+
+.layout { display: grid; gap: 22px; grid-template-columns: 1fr; padding-bottom: 60px; align-items: start; }
+@media (min-width: 1020px) { .layout { grid-template-columns: 400px 1fr; } }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 22px; min-width: 0; }
+.card h2 { font-size: 1.05rem; margin: 0 0 14px; }
+@media (min-width: 1020px) { .form-card { position: sticky; top: 16px; } }
+
+.field { margin-bottom: 18px; }
+.field > label, .field > .lbl { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 6px; }
+.hint { font-size: .84rem; color: var(--muted); margin-top: 5px; }
+textarea { width: 100%; min-height: 150px; resize: vertical; font: .8rem/1.5 var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+textarea:focus, select:focus, input:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+select, input[type="text"] { width: 100%; font: .95rem var(--sans); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 10px; font: 600 .9rem var(--sans); border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--ink-2); }
+.btn.small { padding: 6px 11px; font-size: .84rem; }
+.btn.primary { width: 100%; padding: 12px; background: var(--teal); border-color: var(--teal); color: #fff; font-size: 1rem; }
+.btn.primary:hover { background: var(--teal-ink); }
+.btn.primary:disabled { opacity: .55; cursor: progress; }
+:root[data-theme="dark"] .btn.primary { color: #04201c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #04201c; } }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--line-2); border-radius: 11px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--ink-2); }
+.seg label small { display: block; font-weight: 400; font-size: .76rem; color: var(--muted); }
+.seg input:checked + label { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.seg input:focus-visible + label { outline: 2px solid var(--teal); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: .93rem; cursor: pointer; }
+.check input { margin-top: 4px; accent-color: var(--teal); }
+.check small { display: block; color: var(--muted); font-size: .82rem; }
+details.adv { border-top: 1px solid var(--line-2); padding-top: 12px; margin-bottom: 18px; }
+details.adv summary { cursor: pointer; font-weight: 600; font-size: .92rem; color: var(--ink-2); }
+details.adv .check { margin-top: 10px; }
+.filebox { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: .86rem; color: var(--muted); }
+
+.status { display: flex; gap: 10px; align-items: center; margin-top: 14px; font-size: .9rem; color: var(--ink-2); min-height: 24px; }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--teal); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+.alert { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: .88rem; white-space: pre-wrap; }
+.alert.err { background: var(--red-soft); color: var(--red); }
+.alert.warn { background: var(--amber-soft); color: var(--ink); }
+
+.empty { text-align: center; padding: 48px 16px; color: var(--muted); }
+.empty svg { width: 44px; height: 44px; color: var(--line); margin-bottom: 10px; }
+.empty h3 { color: var(--ink-2); margin: 0 0 6px; font-size: 1.05rem; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.metric { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.metric b { display: block; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1.2; }
+.metric span { font-size: .82rem; color: var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.toolbar input[type="text"] { max-width: 260px; padding: 7px 10px; font-size: .88rem; }
+.downloads { display: flex; flex-wrap: wrap; gap: 6px; }
+.tablewrap { overflow: auto; max-height: 62vh; border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+th { position: sticky; top: 0; background: var(--paper); text-align: left; font: 600 .72rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+th[aria-sort="ascending"]::after { content: " ↑"; } th[aria-sort="descending"]::after { content: " ↓"; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line-2); white-space: nowrap; vertical-align: top; }
+td.seq { font-family: var(--mono); font-size: .8rem; white-space: normal; word-break: break-all; min-width: 220px; }
+td.num { font-family: var(--mono); font-size: .82rem; text-align: right; }
+.pill { display: inline-block; font: 600 .74rem var(--mono); padding: 2px 8px; border-radius: 6px; }
+.pill.Complete { background: var(--teal-soft); color: var(--teal-ink); }
+.pill.Incomplete { background: var(--line-2); color: var(--ink-2); }
+.pill.Interrupted { background: var(--amber-soft); color: var(--amber); }
+.note { font-size: .84rem; color: var(--muted); margin-top: 12px; }
+details.log { margin-top: 16px; }
+details.log summary { cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--ink-2); }
+details.log pre { background: var(--dark); color: var(--dark-text); border-radius: 10px; padding: 12px 14px; font: .76rem/1.55 var(--mono); max-height: 320px; overflow: auto; margin: 10px 0 0; }
+footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: .86rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="../">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#123b37"/><rect x="5" y="15" width="22" height="3" rx="1.5" fill="#cfe3df"/><rect x="17" y="9" width="5" height="4" rx="1" fill="#2bb5a3"/><rect x="8" y="20" width="5" height="4" rx="1" fill="#e08a2c"/></svg>
+      HumaninFinder <small>Web</small>
+    </a>
+    <nav class="nav-links">
+      <a href="../">About</a>
+      <a href="https://github.com/LaBiOmicS/humaninfinder#readme">Docs</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="intro">
+    <h1>Run HumaninFinder in your browser</h1>
+    <p>Paste or upload mitochondrial sequences in FASTA format and get Humanin and SHLP1-6 calls with the same engine as the command-line tool. Results are identical to the installed version.</p>
+    <span class="privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Runs entirely on your computer. Sequences are never uploaded.</span>
+  </div>
+
+  <div class="layout">
+    <form class="card form-card" id="form" novalidate>
+      <h2>Input</h2>
+      <div class="field">
+        <label for="fasta">FASTA sequences</label>
+        <textarea id="fasta" spellcheck="false" placeholder=">my_mitogenome&#10;GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGCAT..."></textarea>
+        <div class="filebox">
+          <button class="btn small" type="button" id="pick">Upload file…</button>
+          <button class="btn small" type="button" id="example">Load example (rCRS)</button>
+          <input class="sr-only" type="file" id="file" accept=".fa,.fasta,.fna,.fas,.txt,.gz">
+          <span id="fileinfo"></span>
+        </div>
+        <div class="hint">Plain or gzip-compressed FASTA. Up to a few hundred mitogenomes per run.</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Mode</span>
+        <div class="seg" role="radiogroup" aria-label="Mode">
+          <input type="radio" name="mode" id="m-predict" value="predict" checked><label for="m-predict">predict<small>best frame per record</small></label>
+          <input type="radio" name="mode" id="m-scan" value="scan"><label for="m-scan">scan<small>every locus (NUMTs)</small></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="code">Genetic code</label>
+        <select id="code">
+          <option value="auto">auto: Table 2 for mitochondrial records, Table 1 otherwise</option>
+          <option value="2">2: vertebrate mitochondrial</option>
+          <option value="1">1: standard (nuclear copies)</option>
+          <option value="2,1">2 and 1: both readings side by side</option>
+          <option value="5">5: invertebrate mitochondrial</option>
+          <option value="9">9: echinoderm and flatworm mitochondrial</option>
+          <option value="4">4: mold, protozoan and coelenterate mitochondrial</option>
+          <option value="13">13: ascidian mitochondrial</option>
+          <option value="other">other NCBI table(s)…</option>
+        </select>
+        <input type="text" id="code-other" placeholder="e.g. 3 or 2,5" hidden aria-label="Custom NCBI genetic code(s)">
+        <div class="hint"><code>auto</code> covers vertebrates only; give the code explicitly for other taxa.</div>
+      </div>
+
+      <div class="field">
+        <label class="check"><input type="checkbox" id="circular" checked><span>Circular genomes<small>Read loci across the origin of records ≤ 50 kb. Keep on for complete mitogenomes.</small></span></label>
+      </div>
+
+      <details class="adv">
+        <summary>Advanced options</summary>
+        <label class="check"><input type="checkbox" id="all"><span id="all-label">Report every candidate<small>Not only the best one per genetic code.</small></span></label>
+        <label class="check"><input type="checkbox" id="no-hmm"><span>Skip the PF15040 domain search</span></label>
+        <label class="check"><input type="checkbox" id="no-rescue"><span>Skip the rescue of interrupted frames</span></label>
+        <label class="check"><input type="checkbox" id="no-shlp"><span>Skip SHLP1-6</span></label>
+        <label class="check"><input type="checkbox" id="no-synteny"><span>Skip the MT-RNR2 locus search</span></label>
+      </details>
+
+      <button class="btn primary" type="submit" id="run">Run HumaninFinder</button>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div id="alert"></div>
+    </form>
+
+    <section class="card" id="results" aria-live="polite">
+      <div class="empty" id="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="10" width="18" height="4" rx="2"/><rect x="13" y="5" width="4" height="3" rx="1"/><rect x="6" y="16" width="4" height="3" rx="1"/></svg>
+        <h3>No results yet</h3>
+        <p>Load the example or paste your sequences, then press <b>Run</b>.<br>The first run downloads the engine (about 15 MB); later runs start immediately.</p>
+      </div>
+      <div id="output" hidden>
+        <div class="summary" id="summary"></div>
+        <div class="toolbar">
+          <input type="text" id="filter" placeholder="Filter rows…" aria-label="Filter result rows">
+          <div class="downloads" id="downloads"></div>
+        </div>
+        <div class="tablewrap"><table id="table"><thead></thead><tbody></tbody></table></div>
+        <p class="note" id="note"></p>
+        <details class="log"><summary>Run log</summary><pre id="log"></pre></details>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>HumaninFinder · LaBiOmicS, Universidade de Mogi das Cruzes · MIT License</span>
+    <span id="versions">Engine: Pyodide 0.27.8 · pyhmmer built by <a href="https://github.com/LaBiOmicS/pyhmmer-pyodide">pyhmmer-pyodide</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+  try { var t = localStorage.getItem("hf-theme"); if (t) root.setAttribute("data-theme", t); } catch (e) {}
+  $("theme").addEventListener("click", function () {
+    var cur = root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var next = cur === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("hf-theme", next); } catch (e) {}
+  });
+
+  var worker = null, runId = 0, uploaded = null, timer = null, logLines = [];
+  var COLUMNS = [
+    ["sample_id", "Record"], ["name", "Peptide"], ["status", "Status"], ["strand", "Strand"],
+    ["start_1based", "Start"], ["end_1based", "End"], ["length", "Length"], ["genetic_code", "Code"],
+    ["evidence_source", "Evidence"], ["synteny_score", "Locus bits"], ["hmm_bitscore", "HMM bits"],
+    ["identity_to_reference", "Identity"], ["seq", "Sequence"]
+  ];
+  var NUMERIC = { start_1based: 1, end_1based: 1, length: 1, synteny_score: 1, hmm_bitscore: 1, identity_to_reference: 1, genetic_code: 1 };
+  var rows = [], sortKey = null, sortDir = 1, files = {}, objectUrls = [];
+
+  function status(text, busy) {
+    $("status").innerHTML = (busy ? '<span class="spinner" aria-hidden="true"></span>' : "") + "<span></span>";
+    $("status").lastChild.textContent = text;
+  }
+  function alertBox(text, kind) {
+    $("alert").innerHTML = text ? '<div class="alert ' + (kind || "err") + '"></div>' : "";
+    if (text) $("alert").firstChild.textContent = text;
+  }
+
+  function getWorker() {
+    if (worker) return worker;
+    worker = new Worker("worker.js");
+    worker.onmessage = function (ev) {
+      var m = ev.data;
+      if (m.type === "status") status(m.text, true);
+      else if (m.type === "log") { logLines.push(m.text); }
+      else if (m.type === "ready") {
+        $("versions").innerHTML = "Engine: Pyodide 0.27.8 · HumaninFinder " + m.versions.humanin_finder +
+          " · pyhmmer " + m.versions.pyhmmer + ' (<a href="https://github.com/LaBiOmicS/pyhmmer-pyodide">pyhmmer-pyodide</a>)';
+        status("Running HumaninFinder…", true);
+      }
+      else if (m.type === "done" && m.id === runId) finish(m);
+      else if (m.type === "error" && (m.id === runId || m.id === undefined)) fail(m.text);
+    };
+    worker.onerror = function (e) { fail("The engine could not start: " + (e.message || "unknown error") + ". Check your connection and reload the page."); };
+    return worker;
+  }
+
+  // Input handling
+  $("pick").addEventListener("click", function () { $("file").click(); });
+  $("file").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    f.arrayBuffer().then(function (buf) {
+      uploaded = { name: f.name, data: buf };
+      $("fileinfo").textContent = f.name + " (" + (f.size / 1048576).toFixed(2) + " MB)";
+      $("fasta").value = ""; $("fasta").placeholder = "Using the uploaded file " + f.name + ". Type here to use pasted sequences instead.";
+    });
+  });
+  $("fasta").addEventListener("input", function () {
+    if (uploaded && this.value.trim()) { uploaded = null; $("fileinfo").textContent = ""; $("file").value = ""; }
+  });
+  $("example").addEventListener("click", function () {
+    fetch("examples/rcrs_nc_012920_1.fasta").then(function (r) { return r.text(); }).then(function (txt) {
+      uploaded = null; $("file").value = ""; $("fileinfo").textContent = "";
+      $("fasta").value = txt; $("code").value = "2"; $("circular").checked = true; $("m-predict").checked = true;
+      syncMode(); syncCode();
+    });
+  });
+  function syncCode() { $("code-other").hidden = $("code").value !== "other"; }
+  $("code").addEventListener("change", syncCode);
+  function syncMode() {
+    var scan = $("m-scan").checked;
+    $("all-label").firstChild.nodeValue = scan ? "Best candidate only " : "Report every candidate ";
+    $("all-label").lastChild.textContent = scan ? "scan reports every locus by default." : "Not only the best one per genetic code.";
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="mode"]'), function (r) { r.addEventListener("change", syncMode); });
+
+  function buildArgs() {
+    var mode = document.querySelector('input[name="mode"]:checked').value;
+    var code = $("code").value === "other" ? $("code-other").value.trim() : $("code").value;
+    if (!/^(auto|\d+(,\d+)*)$/.test(code)) throw new Error("Genetic code must be 'auto' or NCBI table numbers such as 2 or 2,1.");
+    var args = [mode, "-i", "@INPUT", "-o", "humaninfinder", "-g", code];
+    if ($("circular").checked) args.push("--circular");
+    if ($("all").checked) args.push(mode === "scan" ? "--best-only" : "--all-candidates");
+    ["no-hmm", "no-rescue", "no-shlp", "no-synteny"].forEach(function (k) { if ($(k).checked) args.push("--" + k); });
+    return args;
+  }
+
+  $("form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    alertBox("");
+    var input;
+    try {
+      var args = buildArgs();
+      if (uploaded) input = { name: uploaded.name, data: uploaded.data.slice(0) };
+      else {
+        var txt = $("fasta").value.trim();
+        if (!txt) throw new Error("Paste FASTA sequences, upload a file or load the example first.");
+        if (txt[0] !== ">") throw new Error("FASTA input must start with a header line beginning with '>'.");
+        input = { name: "input.fasta", data: new TextEncoder().encode(txt + "\n").buffer };
+      }
+    } catch (e) { alertBox(e.message); return; }
+    if (input.data.byteLength > 50 * 1048576) alertBox("This input is larger than 50 MB. The browser may run out of memory; the command-line tool is better suited to whole genomes.", "warn");
+    runId += 1; logLines = [];
+    $("run").disabled = true;
+    var t0 = Date.now();
+    status(worker ? "Running HumaninFinder…" : "Starting the engine…", true);
+    clearInterval(timer);
+    timer = setInterval(function () {
+      var s = Math.round((Date.now() - t0) / 1000);
+      var span = $("status").lastChild; if (span && s > 2) span.textContent = span.textContent.replace(/ \(\d+ s\)$/, "") + " (" + s + " s)";
+    }, 1000);
+    getWorker().postMessage({ type: "run", id: runId, fasta: input.data, filename: input.name, args: args }, [input.data]);
+  });
+
+  function stop() { clearInterval(timer); $("run").disabled = false; }
+  function fail(text) {
+    stop(); status("");
+    var lastLog = logLines.filter(function (l) { return /error|invalid|\[!\]|\[-\]/i.test(l); }).slice(-3).join("\n");
+    alertBox((lastLog ? lastLog + "\n\n" : "") + text);
+    if (logLines.length) { $("log").textContent = logLines.join("\n"); }
+  }
+
+  // CSV parser (handles quoted fields)
+  function parseCSV(text) {
+    var out = [], row = [], field = "", q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; } else field += c; }
+      else if (c === '"') q = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(field); out.push(row); row = []; field = ""; }
+      else field += c;
+    }
+    if (field || row.length) { row.push(field); out.push(row); }
+    var head = out.shift() || [];
+    return out.filter(function (r) { return r.length > 1; }).map(function (r) {
+      var o = {}; head.forEach(function (h, k) { o[h] = r[k]; }); return o;
+    });
+  }
+
+  function finish(m) {
+    stop();
+    files = m.files;
+    var csvName = Object.keys(files).filter(function (f) { return /_results\.csv$/.test(f); })[0];
+    rows = csvName ? parseCSV(new TextDecoder().decode(files[csvName])) : [];
+    sortKey = null; sortDir = 1; $("filter").value = "";
+    $("log").textContent = logLines.join("\n");
+    var records = {}; rows.forEach(function (r) { records[r.sample_id] = 1; });
+    var complete = rows.filter(function (r) { return r.status === "Complete"; }).length;
+    var gapName = Object.keys(files).filter(function (f) { return /_gaps\.csv$/.test(f); })[0];
+    var gaps = gapName ? parseCSV(new TextDecoder().decode(files[gapName])).length : 0;
+    $("summary").innerHTML = "";
+    [[rows.length, "frames reported"], [complete, "Complete"], [Object.keys(records).length, "records with calls"], [m.seconds.toFixed(1) + " s", "run time"]]
+      .concat(gaps ? [[gaps, "start codons in gaps"]] : [])
+      .forEach(function (p) {
+        var d = document.createElement("div"); d.className = "metric";
+        d.innerHTML = "<b></b><span></span>"; d.firstChild.textContent = p[0]; d.lastChild.textContent = p[1];
+        $("summary").appendChild(d);
+      });
+    renderDownloads();
+    renderTable();
+    $("note").textContent = rows.length
+      ? "1-based coordinates include the stop codon. All evidence is in silico homology; see the documentation for statuses and names."
+      : "No candidate frames were found. Check the genetic code (auto covers vertebrates only) and that the sequences contain MT-RNR2.";
+    $("empty").hidden = true; $("output").hidden = false;
+    status("Done in " + m.seconds.toFixed(1) + " s.", false);
+    if (window.matchMedia("(max-width: 1019px)").matches) $("results").scrollIntoView({ behavior: "smooth" });
+  }
+
+  function renderDownloads() {
+    objectUrls.forEach(URL.revokeObjectURL); objectUrls = [];
+    var box = $("downloads"); box.innerHTML = "";
+    var order = ["_results.csv", "_results.fasta", "_results.gff3", "_results.bed", "_gaps.csv", "_run.json"];
+    Object.keys(files).sort(function (a, b) {
+      var ia = order.findIndex(function (s) { return a.endsWith(s); }), ib = order.findIndex(function (s) { return b.endsWith(s); });
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    }).forEach(function (name) {
+      var url = URL.createObjectURL(new Blob([files[name]])); objectUrls.push(url);
+      var a = document.createElement("a"); a.className = "btn small"; a.href = url; a.download = name;
+      a.textContent = "↓ " + name.replace(/^humaninfinder_?/, "").replace(/^results\./, "");
+      a.title = name; box.appendChild(a);
+    });
+  }
+
+  function renderTable() {
+    var thead = $("table").tHead, tbody = $("table").tBodies[0];
+    thead.innerHTML = ""; var tr = document.createElement("tr");
+    COLUMNS.forEach(function (c) {
+      var th = document.createElement("th"); th.textContent = c[1]; th.scope = "col"; th.tabIndex = 0;
+      if (sortKey === c[0]) th.setAttribute("aria-sort", sortDir > 0 ? "ascending" : "descending");
+      var go = function () { sortDir = sortKey === c[0] ? -sortDir : 1; sortKey = c[0]; renderTable(); };
+      th.addEventListener("click", go); th.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    var q = $("filter").value.trim().toLowerCase();
+    var view = rows.filter(function (r) { return !q || COLUMNS.some(function (c) { return String(r[c[0]] || "").toLowerCase().indexOf(q) >= 0; }); });
+    if (sortKey) view.sort(function (a, b) {
+      var x = a[sortKey] || "", y = b[sortKey] || "";
+      if (NUMERIC[sortKey]) { x = parseFloat(x); y = parseFloat(y); x = isNaN(x) ? -Infinity : x; y = isNaN(y) ? -Infinity : y; return (x - y) * sortDir; }
+      return x.localeCompare(y) * sortDir;
+    });
+    var frag = document.createDocumentFragment();
+    view.forEach(function (r) {
+      var tr = document.createElement("tr");
+      COLUMNS.forEach(function (c) {
+        var td = document.createElement("td"), v = r[c[0]] == null ? "" : r[c[0]];
+        if (c[0] === "status") { var s = document.createElement("span"); s.className = "pill " + v; s.textContent = v; td.appendChild(s); }
+        else if (c[0] === "strand") td.textContent = v === "1" ? "+" : v === "-1" ? "−" : v;
+        else if (c[0] === "seq") { td.className = "seq"; td.textContent = v; }
+        else if (c[0] === "identity_to_reference" && v !== "") { td.className = "num"; td.textContent = (parseFloat(v) * 100).toFixed(1) + "%"; }
+        else { if (NUMERIC[c[0]]) td.className = "num"; td.textContent = v; }
+        tr.appendChild(td);
+      });
+      frag.appendChild(tr);
+    });
+    tbody.innerHTML = ""; tbody.appendChild(frag);
+  }
+  $("filter").addEventListener("input", renderTable);
+})();
+</script>
+</body>
+</html>

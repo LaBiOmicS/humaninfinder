@@ -11,6 +11,7 @@
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#project-status)
 
 [Website](https://labiomics.github.io/humaninfinder/) •
+[Run in the browser](https://labiomics.github.io/humaninfinder/app/) •
 [Installation](#installation) •
 [Quick start](#quick-start) •
 [Usage](#usage) •
@@ -77,6 +78,12 @@ Humanin read under the cytosolic code (Table 1) gives the 24-aa form `MAPRGFSCLL
 ## Installation
 
 HumaninFinder requires Python ≥ 3.10. Its dependencies are Biopython, click and pyhmmer.
+
+**No installation: in the browser.** The [web version](https://labiomics.github.io/humaninfinder/app/)
+runs the same code in your browser through [Pyodide](https://pyodide.org), with a WebAssembly build of
+pyhmmer ([pyhmmer-pyodide](https://github.com/LaBiOmicS/pyhmmer-pyodide)). Sequences stay on your
+computer. Its outputs are byte-identical to the installed tool's on the validation sets; it runs on one
+thread and suits up to a few hundred mitogenomes per run.
 
 **From PyPI**
 
