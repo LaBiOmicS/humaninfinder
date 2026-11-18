@@ -405,6 +405,14 @@ corrects the strand of SHLP6 in the documentation and adds the web version and `
 command-line interface and output formats are expected to stay stable, but they may still change before
 1.0.0. Changes are listed on the [releases page](https://github.com/LaBiOmicS/humaninfinder/releases).
 
+**Unreleased (on `main`, for the next release).** Memory use no longer grows with the number of records.
+Up to 1.0.0b4, each record's `MT-RNR2` search built a new nhmmer pipeline whose buffers (about 65 MB for
+the 1,686-state profile) were released only by Python's cyclic garbage collector, so a run over many short
+records (contigs, sequence windows) could reach several GB. The search now reuses one pipeline per
+threshold. On 1,000 records of 2.3 kb, the peak memory fell from 2.1 GB to 132 MB and the time from
+458 s to 346 s; on the 343 primate mitogenomes, from 282 MB to 139 MB and from 311 s to 252 s. Results
+are unchanged: the validation suite gives byte-identical outputs.
+
 ## Development
 
 ```sh

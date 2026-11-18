@@ -513,3 +513,35 @@ def test_every_shlp_is_read_under_the_cytosolic_code():
     primate_like = seq[:codon14] + "AGG" + seq[codon14 + 3 :]
     read = next(lc for lc in locate_mdp_loci(primate_like, table=2, peptides=["SHLP6"]))
     assert read["status"] == "Complete" and read["seq"] == "MLDQDIPMVQPLLRVRLFND"
+
+
+def test_locus_search_reuses_one_pipeline_and_frees_memory():
+    """The MT-RNR2 search reuses one nhmmer pipeline per threshold, so memory does not grow per record.
+
+    Up to 1.0.0b4 each record built a new pyhmmer pipeline whose buffers (~65 MB for the MT-RNR2
+    profile) sat in reference cycles until the cyclic collector ran: a run over many short records
+    grew by that much per record. The hits must be the same on every call.
+    """
+    import resource
+    import sys
+
+    from humanin_finder.core import _long_targets_pipeline, _profile_domains, load_locus_profiles
+
+    prof = load_locus_profiles()["MT-RNR2"]
+    window = str(SeqIO.read(str(RCRS), "fasta").seq)[1300:3600]
+    threshold = prof["evidence_bitscore"]
+    assert _long_targets_pipeline(float(threshold)) is _long_targets_pipeline(float(threshold))
+
+    def spans():
+        domains = _profile_domains(window, prof["hmm"], threshold, 1)
+        return [(d.score, d.alignment.target_from, d.alignment.target_to) for d in domains]
+
+    first = spans()
+    assert first, "the rCRS MT-RNR2 window must give a locus"
+    unit = 1024 if sys.platform != "darwin" else 1024 * 1024  # ru_maxrss: KB on Linux, bytes on macOS
+    before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / unit
+    for _ in range(10):
+        again = spans()
+        assert again == first
+    grown = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / unit - before
+    assert grown < 200, f"peak memory grew by {grown:.0f} MB over 10 searches"

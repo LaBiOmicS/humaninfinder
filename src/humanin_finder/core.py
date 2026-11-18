@@ -686,6 +686,19 @@ def _circular_overlap(lo1: int, hi1: int, lo2: int, hi2: int, length: int) -> bo
     return any(calculate_overlap(lo1 - 1, hi1, lo2 - 1 + s, hi2 + s) > 0 for s in (-length, 0, length))
 
 
+@lru_cache(maxsize=8)
+def _long_targets_pipeline(threshold: float) -> pyhmmer.plan7.LongTargetsPipeline:
+    """One nhmmer pipeline per bit threshold, reused for every record of the process.
+
+    ``pyhmmer.hmmer.nhmmer`` builds a new pipeline (and worker thread) per call; the pipeline's
+    buffers for the 1,686-state MT-RNR2 profile take about 65 MB and are held in reference cycles
+    that only the cyclic garbage collector frees, so a run over many short records (contigs, windows)
+    grew by that much per record. Reusing the pipeline keeps memory flat and gives the same hits.
+    A pipeline is not thread-safe; HumaninFinder searches records one at a time.
+    """
+    return pyhmmer.plan7.LongTargetsPipeline(pyhmmer.easel.Alphabet.dna(), T=threshold, domT=threshold)
+
+
 def _profile_domains(
     seq_str: str,
     hmm: pyhmmer.plan7.HMM,
@@ -701,15 +714,11 @@ def _profile_domains(
     domains overlapping a higher-scoring one across the origin (the part of a locus cut at the origin
     of the linear record, superseded by the whole locus read through it).
     """
-    alphabet = pyhmmer.easel.Alphabet.dna()
-    target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(alphabet)
-    domains = [
-        domain
-        for top in pyhmmer.hmmer.nhmmer([hmm], [target], cpus=cpus, T=threshold, domT=threshold)
-        for hit in top
-        for domain in hit.domains
-        if domain.score >= threshold
-    ]
+    del cpus  # one target per search: the cached pipeline runs it on the calling thread
+    pipeline = _long_targets_pipeline(float(threshold))
+    target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(pipeline.alphabet)
+    hits = pipeline.search_hmm(hmm, pyhmmer.easel.DigitalSequenceBlock(pipeline.alphabet, [target]))
+    domains = [domain for hit in hits for domain in hit.domains if domain.score >= threshold]
     if circular_length is None:
         return domains
 
