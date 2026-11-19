@@ -952,6 +952,53 @@ def _drop_origin_copies(domains: list[_Domain], circular_length: int) -> list[_D
     return [d for d in in_record if any(d is k for k in kept)]
 
 
+def _chain_coverage(domains: list[Any], profile_length: int, max_gap: int = 500, max_overlap: int = 50) -> list[float]:
+    """Coverage of each domain's locus: the union of the profile spans of its collinear chain.
+
+    nhmmer can split one locus into consecutive domains (an indel, a run of Ns or a misread splits the
+    alignment), and each piece then covers only part of the profile although the gene is whole. Domains
+    on the same strand are chained when, in the orientation of the profile, each next domain starts
+    later in both the profile and the target, overlaps the previous one by at most ``max_overlap``
+    columns or bases, and leaves at most ``max_gap`` columns and bases between them. The coverage of a
+    domain is the fraction of profile states spanned by the union of its chain.
+    """
+
+    def oriented(d: Any) -> tuple[int, int, int]:
+        a = d.alignment
+        step = 1 if a.target_to >= a.target_from else -1
+        return step, step * a.target_from, step * a.target_to
+
+    order = sorted(range(len(domains)), key=lambda i: (oriented(domains[i])[0], oriented(domains[i])[1]))
+    chain_of = list(range(len(domains)))
+    prev = None
+    for i in order:
+        if prev is not None:
+            sa, _, ea = oriented(domains[prev])
+            sb, bb, _ = oriented(domains[i])
+            pa, pb = domains[prev].alignment, domains[i].alignment
+            if (
+                sa == sb
+                and -max_overlap <= bb - ea - 1 <= max_gap
+                and -max_overlap <= pb.hmm_from - pa.hmm_to - 1 <= max_gap
+                and pb.hmm_from > pa.hmm_from
+            ):
+                chain_of[i] = chain_of[prev]
+        prev = i
+    spans: dict[int, list[tuple[int, int]]] = {}
+    for i, d in enumerate(domains):
+        spans.setdefault(chain_of[i], []).append((d.alignment.hmm_from, d.alignment.hmm_to))
+    covered = {}
+    for c, iv in spans.items():
+        total, end = 0, 0
+        for lo, hi in sorted(iv):
+            lo = max(lo, end + 1)
+            if hi >= lo:
+                total += hi - lo + 1
+                end = hi
+        covered[c] = total / profile_length
+    return [covered[chain_of[i]] for i in range(len(domains))]
+
+
 def _profile_positions(
     seq_str: str,
     hmm: pyhmmer.plan7.HMM,
@@ -965,7 +1012,8 @@ def _profile_positions(
     ``states`` maps a peptide to (match state of the first base of its start codon, orientation of
     the peptide relative to the profile). Returns (bitscore, peptide, peptide strand on the target,
     0-based start on that strand, bits per aligned profile column, fraction of the profile's match
-    states spanned by the alignment) for every hit at or above ``threshold``.
+    states spanned by the hit's collinear chain, see ``_chain_coverage``) for every hit at or above
+    ``threshold``.
 
     A start-codon column that aligns to a gap in the target yields no position, because the codon
     itself is not in the record. ``locus_gap_report`` reports those cases separately, so that a
@@ -978,11 +1026,11 @@ def _profile_positions(
     for name, (state, orientation) in states.items():
         by_state[state].append((name, orientation))
     positions = []
-    for domain in _profile_domains(seq_str, hmm, threshold, cpus, circular_length):
+    domains = list(_profile_domains(seq_str, hmm, threshold, cpus, circular_length))
+    coverages = _chain_coverage(domains, hmm.M)
+    for domain, coverage in zip(domains, coverages, strict=True):
         aln = domain.alignment
-        span = aln.hmm_to - aln.hmm_from + 1
-        density = float(domain.score) / span
-        coverage = span / hmm.M
+        density = float(domain.score) / (aln.hmm_to - aln.hmm_from + 1)
         step = 1 if aln.target_to >= aln.target_from else -1
         k, t = aln.hmm_from, aln.target_from
         for h, c in zip(aln.hmm_sequence, aln.target_sequence, strict=True):
@@ -1085,7 +1133,8 @@ def locate_mdp_loci(
     the profile that found them, named in ``locus_profile``).
 
     ``locus_density`` is the bitscore per aligned profile column and ``locus_coverage`` the fraction of
-    the profile's match states that the alignment spans. ``vertebrate_like`` is True when the density
+    the profile's match states that the locus spans (the union of collinear domains, when nhmmer splits
+    one locus; see ``_chain_coverage``). ``vertebrate_like`` is True when the density
     reaches the profile's ``vertebrate_min_density`` and the coverage its ``vertebrate_min_coverage``
     (both calibrated between non-vertebrate mitogenomes and the most divergent vertebrate
     mitogenomes). Coverage is required because density is measured only over the aligned columns: a
