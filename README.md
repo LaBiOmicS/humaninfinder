@@ -208,7 +208,7 @@ $ humanin-finder setup
 [+] PF15040 Humanin domain: gathering threshold 27.0 bits.
 [+] SHLP references: SHLP1, SHLP2, SHLP3, SHLP4, SHLP5, SHLP6.
 [+] MT-RNR2 locus profiles: MT-RNR2 (1686 states, >= 140 bits), Humanin_core (211 states, >= 105 bits)
-[+] Vertebrate-like density (Humanin vs Humanin_position): MT-RNR2 >= 0.587 bits/column
+[+] Vertebrate-like locus (Humanin vs Humanin_position): MT-RNR2 >= 0.587 bits/column over >= 0.608 of the profile
 
 [!] Setup inspection complete: all bundled data files verified.
 ```
@@ -339,7 +339,7 @@ flowchart LR
 
    | Name | Evidence |
    |---|---|
-   | `Humanin`, `SHLP<n>` | At a vertebrate-like `MT-RNR2` locus. For Humanin, the name is also given to a locus whose frame carries the PF15040 domain at the Pfam gathering threshold. |
+   | `Humanin`, `SHLP<n>` | At a vertebrate-like `MT-RNR2` locus: at least 0.587 bits per aligned profile column, over at least 0.608 of the profile (a short, dense alignment of a conserved stretch is not enough). For Humanin, the name is also given to a locus whose frame carries the PF15040 domain at the Pfam gathering threshold. |
    | `Humanin_position`, `SHLP<n>_position` | At an `MT-RNR2` locus outside the vertebrate pattern. Only the homologous position is marked. |
    | `Humanin_domain` | A PF15040 domain outside any `MT-RNR2` locus. Only the domain is supported. |
 
@@ -368,7 +368,7 @@ and announced at the end of the run.
 | Identity | `sample_id`, `name`, `status`, `seq`, `length` | Record, peptide name, status, peptide sequence and length (aa). |
 | Location | `strand`, `frame`, `start_0based`, `end_0based`, `start_1based`, `end_1based` | Half-open 0-based and inclusive 1-based coordinates; they include the stop codon of a `Complete` frame. |
 | Circularity | `circular_wrap` | `True` when the feature crosses the origin; `end` then exceeds the record length (GFF3 convention). |
-| `MT-RNR2` locus | `synteny_score`, `locus_profile`, `locus_density`, `locus_mode` | Bitscore of the locus profile, the profile that produced it, bits per aligned profile column, and how the frame was located. |
+| `MT-RNR2` locus | `synteny_score`, `locus_profile`, `locus_density`, `locus_coverage`, `locus_mode` | Bitscore of the locus profile, the profile that produced it, bits per aligned profile column, fraction of the profile spanned by the locus (collinear domains joined), and how the frame was located. |
 | PF15040 domain | `hmm_bitscore`, `hmm_evalue`, `hmm_supported` | Domain score; E-value of a single comparison (Z = 1), so the same domain gets the same value in a short or a long record; whether it reaches the gathering threshold. |
 | Evidence | `evidence_source`, `evidence_tier`, `reference_evidence_tier` | `Synteny`, `HMM` or both; `E1` (in silico homology); the literature tier of the human peptide, given only for a `Complete` frame identical to it. |
 | Comparison | `identity_to_reference` | Ungapped identity of the homologous span to the human peptide. Descriptive only; it does not enter the status. |
@@ -424,6 +424,18 @@ chr20 and chrM (154 Mb), the run took 453 s before, 311 s now on one thread and 
 same peak memory (about 610 MB, set by the longest record); on the 343 primate mitogenomes, 39 s on four
 threads. Outputs are byte-identical to the previous version on these chromosomes and on the validation
 suite, for one and four threads.
+
+Also unreleased, and the only change that alters results: a vertebrate-like `MT-RNR2` locus now needs
+coverage as well as density. Density is measured over the aligned columns only, so a short alignment of a
+conserved stretch of an invertebrate 16S gene can be as dense as a whole vertebrate gene: on 99 further
+RefSeq non-vertebrate mitogenomes, 7 loci spanning 36-42% of the profile passed the 0.587 bits/column
+cut-off and were named `Humanin`. The locus must now also span 0.608 of the profile, counting the collinear
+domains into which nhmmer may split one gene. On a second, independent set of 121 non-vertebrates, 12 loci
+passed the density cut-off alone and none passes both. Vertebrate mitogenomes are unaffected (every locus
+of the validation cohorts spans 0.73-0.95 of the profile, and their outputs are unchanged apart from the
+new column); frames at short loci, in non-vertebrates and in partial nuclear copies, are now named
+`_position` unless, for Humanin, PF15040 reaches GA. Outputs gain a `locus_coverage` column (CSV) and
+attribute (GFF3), so the frozen reference outputs of the validation suite must be regenerated.
 
 ## Development
 
