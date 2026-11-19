@@ -252,10 +252,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   var COLUMNS = [
     ["sample_id", "Record"], ["name", "Peptide"], ["status", "Status"], ["strand", "Strand"],
     ["start_1based", "Start"], ["end_1based", "End"], ["length", "Length"], ["genetic_code", "Code"],
-    ["evidence_source", "Evidence"], ["synteny_score", "Locus bits"], ["hmm_bitscore", "HMM bits"],
+    ["evidence_source", "Evidence"], ["synteny_score", "Locus bits"], ["locus_density", "Density"], ["locus_coverage", "Coverage"], ["hmm_bitscore", "HMM bits"],
     ["identity_to_reference", "Identity"], ["seq", "Sequence"]
   ];
-  var NUMERIC = { start_1based: 1, end_1based: 1, length: 1, synteny_score: 1, hmm_bitscore: 1, identity_to_reference: 1, genetic_code: 1 };
+  var NUMERIC = { start_1based: 1, end_1based: 1, length: 1, synteny_score: 1, locus_density: 1, locus_coverage: 1, hmm_bitscore: 1, identity_to_reference: 1, genetic_code: 1 };
   var rows = [], sortKey = null, sortDir = 1, files = {}, objectUrls = [];
 
   function status(text, busy) {
