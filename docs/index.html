@@ -503,7 +503,7 @@ footer p { margin: 0 0 6px; }
       <div class="st"><h3>Locate the locus</h3><p><code>nhmmer</code> searches the record with profile HMMs of the whole MT-RNR2 gene and of the Humanin core. Thresholds sit above the paralogous bacterial and plastid 23S and the nuclear 28S rRNAs.</p></div>
       <div class="st"><h3>Read the frame</h3><p>The species' own ORF is read from the start codon nearest the mapped human one, within 6 codons. Humanin uses the requested code; SHLP1-6 the standard code.</p></div>
       <div class="st"><h3>Assign a status</h3><p><b>Complete</b>: start through an in-frame stop. <b>Incomplete</b>: no start, or no stop within 60 codons. <b>Interrupted</b>: an in-frame stop inside the homologous span.</p></div>
-      <div class="st"><h3>Name by evidence</h3><p><code>Humanin</code> at a vertebrate-like locus, <code>_position</code> outside the vertebrate pattern, <code>_domain</code> for a PF15040 domain outside any locus.</p></div>
+      <div class="st"><h3>Name by evidence</h3><p><code>Humanin</code> at a vertebrate-like locus (at least 0.587 bits per aligned profile column over at least 0.608 of the MT-RNR2 profile, reported as <code>locus_density</code> and <code>locus_coverage</code>), <code>_position</code> outside the vertebrate pattern, <code>_domain</code> for a PF15040 domain outside any locus.</p></div>
     </div>
 
     <div class="split">
@@ -611,7 +611,7 @@ humanin-finder setup</pre></div>
         <h3>It does not tell you</h3>
         <ul>
           <li>Whether the peptide is expressed or functional: that needs experiments.</li>
-          <li>Much outside vertebrates: the profiles come from vertebrate mitogenomes, so other loci are named <code>_position</code> at most.</li>
+          <li>Much outside vertebrates: the profiles come from vertebrate mitogenomes, so other loci are named <code>_position</code> at most. A short, dense alignment of a conserved stretch is not enough: the locus must also span most of the profile.</li>
           <li>The right code for a NUMT in a short nuclear contig: pass <code>-g 1</code>.</li>
         </ul>
       </div>
