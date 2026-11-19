@@ -170,14 +170,14 @@ conda install -c conda-forge -c bioconda humanin-finder
 [GitHub Container Registry](https://github.com/LaBiOmicS/humaninfinder/pkgs/container/humaninfinder))
 
 ```sh
-docker pull ghcr.io/labiomics/humaninfinder:1.0.0b4
+docker pull ghcr.io/labiomics/humaninfinder:1.0.0b5
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/data \
-  ghcr.io/labiomics/humaninfinder:1.0.0b4 predict -i genome.fasta -o results
+  ghcr.io/labiomics/humaninfinder:1.0.0b5 predict -i genome.fasta -o results
 ```
 
 The image holds the PyPI release of the same version. Its working directory is `/data`: mount your
 directory there; `--user` makes the outputs yours. With Apptainer/Singularity:
-`apptainer run docker://ghcr.io/labiomics/humaninfinder:1.0.0b4 predict -i genome.fasta -o results`.
+`apptainer run docker://ghcr.io/labiomics/humaninfinder:1.0.0b5 predict -i genome.fasta -o results`.
 
 **From source**
 
@@ -203,7 +203,7 @@ Then check that the installation and every bundled data file are usable:
 
 ```console
 $ humanin-finder setup
-[*] Verifying HumaninFinder v1.0.0b4 prerequisites...
+[*] Verifying HumaninFinder v1.0.0b5 prerequisites...
 [+] pyhmmer (in-memory HMMER 0.12.3) verified.
 [+] PF15040 Humanin domain: gathering threshold 27.0 bits.
 [+] SHLP references: SHLP1, SHLP2, SHLP3, SHLP4, SHLP5, SHLP6.
@@ -400,14 +400,15 @@ peptide and is copied only when the frame found is identical to it.
 
 ## Project status
 
-HumaninFinder **1.0.0b4** is a beta that accompanies a manuscript in preparation (1.0.0b1 was the first
+HumaninFinder **1.0.0b5** is a beta that accompanies a manuscript in preparation (1.0.0b1 was the first
 tagged release; 1.0.0b2 added this documentation and fixed the rat record of the example set; 1.0.0b3
 corrects the strand of SHLP6 in the documentation and adds the web version and `environment.yml`;
-1.0.0b4 adds the container image and the Zenodo DOI): the
+1.0.0b4 adds the container image and the Zenodo DOI; 1.0.0b5 bounds memory use, adds `--threads` and
+requires profile coverage for a vertebrate-like locus, see below): the
 command-line interface and output formats are expected to stay stable, but they may still change before
 1.0.0. Changes are listed on the [releases page](https://github.com/LaBiOmicS/humaninfinder/releases).
 
-**Unreleased (on `main`, for the next release).** Memory use no longer grows with the number of records.
+**Changes in 1.0.0b5.** Memory use no longer grows with the number of records.
 Up to 1.0.0b4, each record's `MT-RNR2` search built a new nhmmer pipeline whose buffers (about 65 MB for
 the 1,686-state profile) were released only by Python's cyclic garbage collector, so a run over many short
 records (contigs, sequence windows) could reach several GB. The search now reuses one pipeline per
@@ -415,7 +416,7 @@ threshold. On 1,000 records of 2.3 kb, the peak memory fell from 2.1 GB to 132 M
 458 s to 346 s; on the 343 primate mitogenomes, from 282 MB to 139 MB and from 311 s to 252 s. Results
 are unchanged: the validation suite gives byte-identical outputs.
 
-Also unreleased: `--threads N` runs the searches in `N` worker processes. Records up to 1 Mb go to the
+`--threads N` runs the searches in `N` worker processes. Records up to 1 Mb go to the
 workers whole; a longer record (a chromosome) has its PF15040 chunks and its `MT-RNR2` search split
 among them, the latter in 1-Mb windows that each report only the loci starting in their own span. The
 windows are the same for any `N`, so the outputs do not depend on it. Each record is also searched once
@@ -425,7 +426,7 @@ same peak memory (about 610 MB, set by the longest record); on the 343 primate m
 threads. Outputs are byte-identical to the previous version on these chromosomes and on the validation
 suite, for one and four threads.
 
-Also unreleased, and the only change that alters results: a vertebrate-like `MT-RNR2` locus now needs
+The only change in 1.0.0b5 that alters results: a vertebrate-like `MT-RNR2` locus now needs
 coverage as well as density. Density is measured over the aligned columns only, so a short alignment of a
 conserved stretch of an invertebrate 16S gene can be as dense as a whole vertebrate gene: on 99 further
 RefSeq non-vertebrate mitogenomes, 7 loci spanning 36-42% of the profile passed the 0.587 bits/column
@@ -484,7 +485,7 @@ metadata are in [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" 
 @software{humaninfinder,
   author  = {Menegidio, Fabiano Bezerra and {LaBiOmicS}},
   title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
-  version = {1.0.0b4},
+  version = {1.0.0b5},
   year    = {2026},
   doi     = {10.5281/zenodo.24108118},
   url     = {https://github.com/LaBiOmicS/humaninfinder}

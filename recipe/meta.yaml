@@ -1,6 +1,6 @@
-# Bioconda recipe for 1.0.0b4 (sha256 of the GitHub tag tarball)
+# Bioconda recipe for 1.0.0b5 (sha256 of the GitHub tag tarball, to be set once the v1.0.0b5 tag exists)
 {% set name = "humanin-finder" %}
-{% set version = "1.0.0b4" %}
+{% set version = "1.0.0b5" %}
 
 package:
   name: {{ name }}
