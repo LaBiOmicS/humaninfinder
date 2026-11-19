@@ -67,6 +67,7 @@ CSV_COLUMNS = [
     "synteny_score",
     "locus_profile",
     "locus_density",
+    "locus_coverage",
     "start_offset_codons",
     "evidence_source",
     "evidence_tier",
@@ -220,6 +221,7 @@ def write_deterministic_outputs(results: list[dict[str, Any]], output_prefix: st
                 f"hmm_supported={str(bool(r.get('hmm_supported', False))).lower()};"
                 f"synteny_score={_fmt(r.get('synteny_score'), '.0f')};"
                 f"locus_density={_fmt(r.get('locus_density'), '.3f')};"
+                f"locus_coverage={_fmt(r.get('locus_coverage'), '.3f')};"
                 f"evidence_source={r.get('evidence_source', 'NA')};"
                 f"evidence_tier={r.get('evidence_tier', 'NA')};"
                 f"reference_evidence_tier={r.get('reference_evidence_tier') or 'NA'};"
@@ -373,6 +375,7 @@ def _make_candidate(
         "synteny_score": item.get("synteny_score"),
         "locus_profile": item.get("locus_profile"),
         "locus_density": item.get("locus_density"),
+        "locus_coverage": item.get("locus_coverage"),
         "vertebrate_like": item.get("vertebrate_like"),
         "start_offset_codons": item.get("start_offset_codons"),
         "identity_to_reference": item.get("identity_to_reference"),
@@ -547,6 +550,7 @@ def _process_record(
                         "synteny_score": sh["synteny_score"],
                         "locus_profile": sh["locus_profile"],
                         "locus_density": sh["locus_density"],
+                        "locus_coverage": sh["locus_coverage"],
                         "start_offset_codons": sh["start_offset_codons"],
                         "evidence_source": "Synteny",
                         "evidence_tier": sh["evidence_tier"],
@@ -913,9 +917,14 @@ def setup():
         fg="green",
     )
     click.secho(
-        "[+] Vertebrate-like density (Humanin vs Humanin_position): "
+        "[+] Vertebrate-like locus (Humanin vs Humanin_position): "
         + ", ".join(
             f"{n} >= {p['vertebrate_min_density']:.3f} bits/column"
+            + (
+                f" over >= {p['vertebrate_min_coverage']:.3f} of the profile"
+                if p.get("vertebrate_min_coverage") is not None
+                else ""
+            )
             for n, p in profiles.items()
             if p.get("vertebrate_min_density") is not None
         ),

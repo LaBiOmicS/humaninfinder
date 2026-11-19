@@ -959,13 +959,13 @@ def _profile_positions(
     threshold: float,
     cpus: int,
     circular_length: int | None = None,
-) -> list[tuple[float, str, int, int, float]]:
+) -> list[tuple[float, str, int, int, float, float]]:
     """nhmmer hits of a locus profile mapped to peptide start codons.
 
     ``states`` maps a peptide to (match state of the first base of its start codon, orientation of
     the peptide relative to the profile). Returns (bitscore, peptide, peptide strand on the target,
-    0-based start on that strand, bits per aligned profile column) for every hit at or above
-    ``threshold``.
+    0-based start on that strand, bits per aligned profile column, fraction of the profile's match
+    states spanned by the alignment) for every hit at or above ``threshold``.
 
     A start-codon column that aligns to a gap in the target yields no position, because the codon
     itself is not in the record. ``locus_gap_report`` reports those cases separately, so that a
@@ -980,7 +980,9 @@ def _profile_positions(
     positions = []
     for domain in _profile_domains(seq_str, hmm, threshold, cpus, circular_length):
         aln = domain.alignment
-        density = float(domain.score) / (aln.hmm_to - aln.hmm_from + 1)
+        span = aln.hmm_to - aln.hmm_from + 1
+        density = float(domain.score) / span
+        coverage = span / hmm.M
         step = 1 if aln.target_to >= aln.target_from else -1
         k, t = aln.hmm_from, aln.target_from
         for h, c in zip(aln.hmm_sequence, aln.target_sequence, strict=True):
@@ -989,7 +991,7 @@ def _profile_positions(
                     strand = step * orientation
                     # 1-based forward coordinate of the start-codon base -> 0-based on its strand
                     t_start = t - 1 if strand == 1 else seq_len - t
-                    positions.append((float(domain.score), name, strand, t_start, density))
+                    positions.append((float(domain.score), name, strand, t_start, density, coverage))
             if h != ".":
                 k += 1
             if c != "-":
@@ -1082,10 +1084,14 @@ def locate_mdp_loci(
     an earlier profile is not repeated. Loci are sorted by decreasing ``synteny_score`` (bitscore of
     the profile that found them, named in ``locus_profile``).
 
-    ``locus_density`` is the bitscore per aligned profile column. ``vertebrate_like`` is True when it
-    reaches the profile's ``vertebrate_min_density`` (calibrated between non-vertebrate controls and the
-    most divergent vertebrate mitogenomes); profiles without that calibration (``Humanin_core``, whose
-    density does not separate the groups) give False. See ``mdp_display_name``.
+    ``locus_density`` is the bitscore per aligned profile column and ``locus_coverage`` the fraction of
+    the profile's match states that the alignment spans. ``vertebrate_like`` is True when the density
+    reaches the profile's ``vertebrate_min_density`` and the coverage its ``vertebrate_min_coverage``
+    (both calibrated between non-vertebrate mitogenomes and the most divergent vertebrate
+    mitogenomes). Coverage is required because density is measured only over the aligned columns: a
+    short alignment of a conserved stretch of an invertebrate 16S gene can be as dense as a whole
+    vertebrate gene. Profiles without that calibration (``Humanin_core``, whose density does not
+    separate the groups) give False. See ``mdp_display_name``.
 
     ``circular``: the record is a circular molecule (a mitogenome), so a locus crossing its origin is
     read through it instead of being missed or reported cut at the end of the record. Such a locus
@@ -1102,10 +1108,11 @@ def locate_mdp_loci(
             continue
         threshold = prof["evidence_bitscore"] if min_score is None else min_score
         min_density = prof.get("vertebrate_min_density")
+        min_coverage = prof.get("vertebrate_min_coverage")
         states = {n: (p["state"], p["orientation"]) for n, p in peps.items()}
         search = _circular_search_sequence(seq_str, prof["profile_length"], max_len) if circular else seq_str
         oriented = {1: search}
-        for score, name, strand, t_start, density in _profile_positions(
+        for score, name, strand, t_start, density, coverage in _profile_positions(
             search, prof["hmm"], states, threshold, cpus, circular_length=seq_len if circular else None
         ):
             if strand not in oriented:
@@ -1146,7 +1153,10 @@ def locate_mdp_loci(
                     "name": name,
                     "locus_profile": prof_name,
                     "locus_density": round(density, 4),
-                    "vertebrate_like": min_density is not None and density >= min_density,
+                    "locus_coverage": round(coverage, 4),
+                    "vertebrate_like": min_density is not None
+                    and density >= min_density
+                    and (min_coverage is None or coverage >= min_coverage),
                 }
             )
     loci.sort(key=lambda x: -x["synteny_score"])

@@ -605,3 +605,25 @@ def test_threads_do_not_change_the_outputs(tmp_path, monkeypatch):
         ]
     assert outputs[1] == outputs[2]
     assert b"contig" in outputs[1][1] and b"mt1" in outputs[1][1]
+
+
+def test_short_dense_alignments_are_not_vertebrate_like():
+    """Density alone is measured over the aligned columns only, so a short alignment of a conserved
+    stretch can be as dense as a whole vertebrate 16S gene. 99 further RefSeq non-vertebrates had 7
+    such loci (15-42% of the profile) above the density cut-off. A vertebrate-like locus must also
+    span ``vertebrate_min_coverage`` of the profile; a fragment of the human gene does not, and is
+    named by position (or, for Humanin, by the PF15040 domain when it reaches GA)."""
+    from humanin_finder.core import load_locus_profiles
+
+    prof = load_locus_profiles(None)["MT-RNR2"]
+    assert 0.42 < prof["vertebrate_min_coverage"] < 0.53
+    seq = _rcrs()
+    full = locate_mdp_loci(seq, table=2, peptides=["Humanin"])[0]
+    assert full["locus_coverage"] > 0.9 and full["vertebrate_like"] is True
+    spacer = "".join(random.Random(11).choice("ACGT") for _ in range(3000))
+    fragment = spacer + seq[2400:2900] + spacer
+    hit = [lc for lc in locate_mdp_loci(fragment, table=2, peptides=["Humanin"]) if lc["locus_profile"] == "MT-RNR2"]
+    assert hit, "the fragment is still found by the whole-gene profile"
+    assert hit[0]["locus_density"] >= prof["vertebrate_min_density"]
+    assert hit[0]["locus_coverage"] < prof["vertebrate_min_coverage"]
+    assert hit[0]["vertebrate_like"] is False

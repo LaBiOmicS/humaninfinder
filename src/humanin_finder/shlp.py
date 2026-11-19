@@ -73,6 +73,7 @@ def annotate_shlps(
                 "start_offset_codons": locus["start_offset_codons"],
                 "locus_profile": locus["locus_profile"],
                 "locus_density": locus["locus_density"],
+                "locus_coverage": locus["locus_coverage"],
                 "vertebrate_like": locus["vertebrate_like"],
                 # In silico homology evidence for this locus (E1); the literature tier describes the
                 # human reference peptide and is only carried over for identical complete frames
