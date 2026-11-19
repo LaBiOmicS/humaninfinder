@@ -275,6 +275,7 @@ Run `humanin-finder <command> --help` for the full list of options.
 | `--no-rescue` | Skip the HMM-guided rescue of interrupted frames. |
 | `--no-shlp` | Skip the SHLP1-6 annotation. |
 | `--no-synteny` | Skip the `MT-RNR2` locus search (domain search only). |
+| `--threads N` | Worker processes (default 1). Records up to 1 Mb are searched in parallel; the searches of longer records (chromosomes) are split among the workers. The outputs are the same for any `N`. |
 | `--all-candidates` (`predict`) | Report every non-redundant candidate instead of the best one per code. |
 | `--best-only` (`scan`) | Report only the best candidate per code (the default for `scan` is every candidate). |
 
@@ -291,8 +292,9 @@ humanin-finder predict -i mitogenomes.fasta -o mito -g 2 --circular
 # Compare the mitochondrial and the cytosolic reading of the same loci
 humanin-finder predict -i mitogenomes.fasta -o mito_t2t1 -g 2,1
 
-# NUMTs: every MT-RNR2 copy in a nuclear assembly, read under the standard code
-humanin-finder scan -i genome.fa.gz -o numts -g 1
+# NUMTs: every MT-RNR2 copy in a nuclear assembly, read under the standard code,
+# on 16 cores (e.g. a cluster job with 16 CPUs)
+humanin-finder scan -i genome.fa.gz -o numts -g 1 --threads 16
 
 # Non-vertebrate mitogenome, explicit code
 humanin-finder predict -i drosophila_mt.fasta -o dmel -g 5 --circular
@@ -412,6 +414,16 @@ records (contigs, sequence windows) could reach several GB. The search now reuse
 threshold. On 1,000 records of 2.3 kb, the peak memory fell from 2.1 GB to 132 MB and the time from
 458 s to 346 s; on the 343 primate mitogenomes, from 282 MB to 139 MB and from 311 s to 252 s. Results
 are unchanged: the validation suite gives byte-identical outputs.
+
+Also unreleased: `--threads N` runs the searches in `N` worker processes. Records up to 1 Mb go to the
+workers whole; a longer record (a chromosome) has its PF15040 chunks and its `MT-RNR2` search split
+among them, the latter in 1-Mb windows that each report only the loci starting in their own span. The
+windows are the same for any `N`, so the outputs do not depend on it. Each record is also searched once
+per locus profile instead of once each for Humanin, the start-codon gaps and SHLP1-6. On GRCh38 chr16,
+chr20 and chrM (154 Mb), the run took 453 s before, 311 s now on one thread and 119 s on four, with the
+same peak memory (about 610 MB, set by the longest record); on the 343 primate mitogenomes, 39 s on four
+threads. Outputs are byte-identical to the previous version on these chromosomes and on the validation
+suite, for one and four threads.
 
 ## Development
 

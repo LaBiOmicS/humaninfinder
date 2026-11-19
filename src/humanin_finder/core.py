@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import OrderedDict, deque
+from collections.abc import Callable, Iterable, Iterator
+from concurrent.futures import Executor
+from contextlib import contextmanager
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -13,6 +18,70 @@ from Bio.Data import CodonTable
 from Bio.Seq import Seq
 
 logger = logging.getLogger(__name__)
+
+# Parallel searches (``search_workers``). Long records are cut into pieces of fixed size whatever the
+# number of workers, so the results do not depend on it.
+NHMMER_WINDOW_BP = 1_000_000  # span of a long record each MT-RNR2 window search owns
+PF15040_CHUNKS_PER_TASK = 16  # 60-kb PF15040 chunks per worker task (about 0.9 Mb)
+
+_EXECUTOR: Executor | None = None
+_WORKERS = 1
+
+
+def _worker_init() -> None:
+    """Workers search their own pieces serially: they never fan out again."""
+    global _EXECUTOR, _WORKERS
+    _EXECUTOR, _WORKERS = None, 1
+
+
+@contextmanager
+def search_workers(workers: int) -> Iterator[Executor | None]:
+    """Spread the searches over ``workers`` processes for the duration of the block.
+
+    Inside the block, a long record's PF15040 chunks and MT-RNR2 windows are searched in parallel,
+    and the pipeline can hand whole records to the yielded executor. Processes rather than threads:
+    pyhmmer releases the GIL while it searches, but translating the six frames and reading the
+    frames are pure Python and hold it, so threads would leave most of the run serial. The results
+    are identical for any number of workers (the pieces are fixed, and are merged in input order).
+    ``workers <= 1`` yields ``None`` and changes nothing.
+    """
+    global _EXECUTOR, _WORKERS
+    if workers <= 1:
+        yield None
+        return
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    # spawn: a clean interpreter per worker, the same on Linux and macOS, and safe to start from a
+    # process whose libraries hold threads (fork is not)
+    ctx = multiprocessing.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_worker_init) as ex:
+        previous = _EXECUTOR, _WORKERS
+        _EXECUTOR, _WORKERS = ex, workers
+        try:
+            yield ex
+        finally:
+            _EXECUTOR, _WORKERS = previous
+
+
+def ordered_map(fn: Callable[..., Any], tasks: Iterable[tuple[Any, ...]]) -> Iterator[Any]:
+    """``fn(*task)`` for every task, yielded in task order.
+
+    Inside ``search_workers`` the tasks run in the worker processes, with at most twice as many in
+    flight as there are workers, so that a chromosome is never copied into the queue all at once.
+    """
+    if _EXECUTOR is None:
+        for task in tasks:
+            yield fn(*task)
+        return
+    pending: deque[Any] = deque()
+    for task in tasks:
+        pending.append(_EXECUTOR.submit(fn, *task))
+        if len(pending) >= 2 * _WORKERS:
+            yield pending.popleft().result()
+    while pending:
+        yield pending.popleft().result()
+
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 DEFAULT_HUMANIN_HMM = DATA_DIR / "PF15040.hmm"
@@ -348,6 +417,35 @@ def _search_chunk_pyhmmer(
     return raw_hits
 
 
+def _search_chunk_group(
+    seq_str: str,
+    base: int,
+    starts: list[int],
+    hmm_path: str,
+    table_id: int,
+    evalue_threshold: float,
+    bitscore_threshold: float,
+    chunk_size: int,
+) -> list[dict[str, Any]]:
+    """PF15040 hits of consecutive chunks of a long record, in record coordinates (one worker task).
+
+    ``seq_str`` is the part of the record from ``base`` that holds the chunks; ``starts`` are their
+    offsets in it.
+    """
+    hmm = _load_hmm(hmm_path)
+    alphabet = pyhmmer.easel.Alphabet.amino()
+    hits: list[dict[str, Any]] = []
+    for s in starts:
+        chunk_nuc = seq_str[s : s + chunk_size]
+        if len(chunk_nuc) < 30:
+            continue
+        for h in _search_chunk_pyhmmer(chunk_nuc, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold):
+            h["dna_start"] += base + s
+            h["dna_end"] += base + s
+            hits.append(h)
+    return hits
+
+
 def run_hmm_search_pyhmmer(
     dna_seq: str | Seq,
     hmm_path: str | Path | None = None,
@@ -381,18 +479,30 @@ def run_hmm_search_pyhmmer(
         raw_hits = _search_chunk_pyhmmer(seq_str, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold)
     else:
         step = chunk_size - chunk_overlap
+        starts = []
         for c_start in range(0, seq_len, step):
-            c_end = min(seq_len, c_start + chunk_size)
-            chunk_nuc = seq_str[c_start:c_end]
-            if len(chunk_nuc) < 30:
-                continue
-            c_hits = _search_chunk_pyhmmer(chunk_nuc, hmm, alphabet, table_id, evalue_threshold, bitscore_threshold)
-            for h in c_hits:
-                h["dna_start"] += c_start
-                h["dna_end"] += c_start
-                raw_hits.append(h)
-            if c_end == seq_len:
+            starts.append(c_start)
+            if c_start + chunk_size >= seq_len:
                 break
+
+        def tasks() -> Iterator[tuple[Any, ...]]:
+            for i in range(0, len(starts), PF15040_CHUNKS_PER_TASK):
+                group = starts[i : i + PF15040_CHUNKS_PER_TASK]
+                lo, hi = group[0], min(seq_len, group[-1] + chunk_size)
+                yield (
+                    seq_str[lo:hi],
+                    lo,
+                    [s - lo for s in group],
+                    str(hmm_path),
+                    table_id,
+                    evalue_threshold,
+                    bitscore_threshold,
+                    chunk_size,
+                )
+
+        # Chunks in input order, hits of each chunk in search order: the same list as one serial pass
+        for part in ordered_map(_search_chunk_group, tasks()):
+            raw_hits.extend(part)
 
     # Deduplicate overlapping hits on same strand keeping highest score
     raw_hits.sort(key=lambda h: h["score"], reverse=True)
@@ -694,9 +804,106 @@ def _long_targets_pipeline(threshold: float) -> pyhmmer.plan7.LongTargetsPipelin
     buffers for the 1,686-state MT-RNR2 profile take about 65 MB and are held in reference cycles
     that only the cyclic garbage collector frees, so a run over many short records (contigs, windows)
     grew by that much per record. Reusing the pipeline keeps memory flat and gives the same hits.
-    A pipeline is not thread-safe; HumaninFinder searches records one at a time.
+    A pipeline is not thread-safe; each process (see ``search_workers``) searches one target at a time.
     """
     return pyhmmer.plan7.LongTargetsPipeline(pyhmmer.easel.Alphabet.dna(), T=threshold, domT=threshold)
+
+
+@dataclass(frozen=True)
+class _Alignment:
+    """The fields of a pyhmmer alignment the locus readers use (picklable, unlike pyhmmer's)."""
+
+    target_from: int
+    target_to: int
+    hmm_from: int
+    hmm_to: int
+    hmm_sequence: str
+    target_sequence: str
+
+
+@dataclass(frozen=True)
+class _Domain:
+    score: float
+    alignment: _Alignment
+
+
+def _search_domains(
+    seq_str: str,
+    hmm: pyhmmer.plan7.HMM,
+    threshold: float,
+    offset: int = 0,
+    owned: tuple[int, int] | None = None,
+) -> list[_Domain]:
+    """nhmmer domains of ``hmm`` in ``seq_str`` at or above ``threshold``, in nhmmer's order.
+
+    Coordinates are shifted by ``offset``. With ``owned`` (0-based half-open span, in shifted
+    coordinates) only domains whose leftmost base lies in that span are kept: see ``_locus_domains``.
+    """
+    pipeline = _long_targets_pipeline(float(threshold))
+    target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(pipeline.alphabet)
+    hits = pipeline.search_hmm(hmm, pyhmmer.easel.DigitalSequenceBlock(pipeline.alphabet, [target]))
+    out = []
+    for hit in hits:
+        for domain in hit.domains:
+            if domain.score < threshold:
+                continue
+            a = domain.alignment
+            lo = min(a.target_from, a.target_to) + offset
+            if owned is not None and not owned[0] < lo <= owned[1]:
+                continue
+            out.append(
+                _Domain(
+                    float(domain.score),
+                    _Alignment(
+                        a.target_from + offset,
+                        a.target_to + offset,
+                        a.hmm_from,
+                        a.hmm_to,
+                        a.hmm_sequence,
+                        a.target_sequence,
+                    ),
+                )
+            )
+    return out
+
+
+def _locus_domains(seq_str: str, hmm: pyhmmer.plan7.HMM, threshold: float) -> list[_Domain]:
+    """``_search_domains`` over a whole record, cut into windows when it is long.
+
+    A record longer than ``NHMMER_WINDOW_BP`` (plus margins) is searched in windows that each own
+    ``NHMMER_WINDOW_BP`` bases and extend ``overlap`` bases into their neighbours. A domain is kept
+    only by the window owning its leftmost base, so it is reported once; the overlap, larger than
+    any hit of the profile, means that window holds the whole domain, never a truncated one. nhmmer
+    itself reads long targets in overlapping windows of about twice the profile length and drops
+    the copies the same way. Domains are returned in nhmmer's order (decreasing score, then
+    position). The windows do not depend on the number of workers.
+    """
+    seq_len = len(seq_str)
+    overlap = max(10_000, 4 * hmm.M)
+    if seq_len <= NHMMER_WINDOW_BP + 2 * overlap:
+        return _search_domains(seq_str, hmm, threshold)
+
+    def tasks() -> Iterator[tuple[Any, ...]]:
+        for own_lo in range(0, seq_len, NHMMER_WINDOW_BP):
+            own_hi = min(seq_len, own_lo + NHMMER_WINDOW_BP)
+            w_lo, w_hi = max(0, own_lo - overlap), min(seq_len, own_hi + overlap)
+            yield (seq_str[w_lo:w_hi], hmm, threshold, w_lo, (own_lo, own_hi))
+
+    domains = [d for part in ordered_map(_search_domains, tasks()) for d in part]
+    domains.sort(key=lambda d: (-d.score, min(d.alignment.target_from, d.alignment.target_to)))
+    return domains
+
+
+# Domains of the last few (record, profile, threshold) searches. One record is searched with the
+# same profiles for Humanin, for the start-codon gaps and for SHLP1-6; this keeps those three from
+# repeating the search (on a chromosome, most of the run time). Cleared by ``clear_search_cache``.
+_DOMAIN_CACHE: OrderedDict[tuple[Any, ...], tuple[pyhmmer.plan7.HMM, list[_Domain]]] = OrderedDict()
+_DOMAIN_CACHE_SIZE = 4
+
+
+def clear_search_cache() -> None:
+    """Release the cached locus searches (and the record sequences they hold)."""
+    _DOMAIN_CACHE.clear()
 
 
 def _profile_domains(
@@ -705,7 +912,7 @@ def _profile_domains(
     threshold: float,
     cpus: int,
     circular_length: int | None = None,
-) -> list[Any]:
+) -> list[_Domain]:
     """nhmmer domains of a locus profile at or above ``threshold``, in nhmmer's order.
 
     With ``circular_length`` (the length of the record before ``_circular_search_sequence`` extended
@@ -714,13 +921,23 @@ def _profile_domains(
     domains overlapping a higher-scoring one across the origin (the part of a locus cut at the origin
     of the linear record, superseded by the whole locus read through it).
     """
-    del cpus  # one target per search: the cached pipeline runs it on the calling thread
-    pipeline = _long_targets_pipeline(float(threshold))
-    target = pyhmmer.easel.TextSequence(name=b"target", sequence=seq_str).digitize(pipeline.alphabet)
-    hits = pipeline.search_hmm(hmm, pyhmmer.easel.DigitalSequenceBlock(pipeline.alphabet, [target]))
-    domains = [domain for hit in hits for domain in hit.domains if domain.score >= threshold]
-    if circular_length is None:
-        return domains
+    del cpus  # parallelism comes from ``search_workers``, not from the pipeline
+    key = (seq_str, id(hmm), float(threshold), circular_length)
+    cached = _DOMAIN_CACHE.get(key)
+    if cached is not None and cached[0] is hmm:
+        _DOMAIN_CACHE.move_to_end(key)
+        return list(cached[1])
+    domains = _locus_domains(seq_str, hmm, float(threshold))
+    if circular_length is not None:
+        domains = _drop_origin_copies(domains, circular_length)
+    _DOMAIN_CACHE[key] = (hmm, domains)
+    while len(_DOMAIN_CACHE) > _DOMAIN_CACHE_SIZE:
+        _DOMAIN_CACHE.popitem(last=False)
+    return list(domains)
+
+
+def _drop_origin_copies(domains: list[_Domain], circular_length: int) -> list[_Domain]:
+    """The circular-record filter of ``_profile_domains``."""
 
     def span(d: Any) -> tuple[int, int, int]:
         a, b = d.alignment.target_from, d.alignment.target_to

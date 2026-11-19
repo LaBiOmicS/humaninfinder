@@ -364,7 +364,7 @@ footer p { margin: 0 0 6px; }
       <div class="feature"><span class="n">01</span><h3>Position first</h3><p>Peptides are located by their homologous position in MT-RNR2 with <code>nhmmer</code>, not by matching the human peptide, so divergent orthologues are still found.</p></div>
       <div class="feature"><span class="n">02</span><h3>The species' own frame</h3><p>The ORF is read from the local start codon under the genetic code you choose, and classified as Complete, Incomplete or Interrupted.</p></div>
       <div class="feature"><span class="n">03</span><h3>Graded evidence</h3><p>Names say how far the evidence goes: <code>Humanin</code>, <code>Humanin_position</code> or <code>Humanin_domain</code>, with the Pfam domain PF15040 as independent support.</p></div>
-      <div class="feature"><span class="n">04</span><h3>Mitogenomes and NUMTs</h3><p><code>predict</code> gives the best frame per record; <code>scan</code> reports every locus in contigs and chromosomes that carry nuclear copies.</p></div>
+      <div class="feature"><span class="n">04</span><h3>Mitogenomes and NUMTs</h3><p><code>predict</code> gives the best frame per record; <code>scan</code> reports every locus in contigs and chromosomes that carry nuclear copies. <code>--threads</code> spreads a whole genome over several cores, with the same results.</p></div>
       <div class="feature"><span class="n">05</span><h3>Circular genomes</h3><p>Loci crossing the origin of a circular mitogenome are read through it and written with the GFF3 convention for circular sequences.</p></div>
       <div class="feature"><span class="n">06</span><h3>Traceable outputs</h3><p>CSV, FASTA, GFF3 and BED, plus a JSON record with the command, the options and the SHA-256 of the input.</p></div>
     </div>
@@ -586,7 +586,7 @@ humanin-finder setup</pre></div>
     <div class="recipes">
       <div class="recipe"><h3>Complete mitogenomes, any assembly origin</h3><code>humanin-finder predict -i mito.fasta -o mito -g 2 --circular</code></div>
       <div class="recipe"><h3>Mitochondrial and standard readings side by side</h3><code>humanin-finder predict -i mito.fasta -o mito -g 2,1</code></div>
-      <div class="recipe"><h3>Every MT-RNR2 copy (NUMTs) in a nuclear assembly</h3><code>humanin-finder scan -i genome.fa.gz -o numts -g 1</code></div>
+      <div class="recipe"><h3>Every MT-RNR2 copy (NUMTs) in a nuclear assembly</h3><code>humanin-finder scan -i genome.fa.gz -o numts -g 1 --threads 16</code></div>
       <div class="recipe"><h3>Non-vertebrate mitogenome (insects, code 5)</h3><code>humanin-finder predict -i dmel_mt.fasta -o dmel -g 5 --circular</code></div>
     </div>
   </div>

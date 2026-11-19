@@ -525,7 +525,7 @@ def test_locus_search_reuses_one_pipeline_and_frees_memory():
     import resource
     import sys
 
-    from humanin_finder.core import _long_targets_pipeline, _profile_domains, load_locus_profiles
+    from humanin_finder.core import _long_targets_pipeline, _profile_domains, clear_search_cache, load_locus_profiles
 
     prof = load_locus_profiles()["MT-RNR2"]
     window = str(SeqIO.read(str(RCRS), "fasta").seq)[1300:3600]
@@ -533,6 +533,7 @@ def test_locus_search_reuses_one_pipeline_and_frees_memory():
     assert _long_targets_pipeline(float(threshold)) is _long_targets_pipeline(float(threshold))
 
     def spans():
+        clear_search_cache()  # search again every time, not from the per-record cache
         domains = _profile_domains(window, prof["hmm"], threshold, 1)
         return [(d.score, d.alignment.target_from, d.alignment.target_to) for d in domains]
 
@@ -545,3 +546,62 @@ def test_locus_search_reuses_one_pipeline_and_frees_memory():
         assert again == first
     grown = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / unit - before
     assert grown < 200, f"peak memory grew by {grown:.0f} MB over 10 searches"
+
+
+def _record_with_rnr2_copies(length: int, sites: list[tuple[int, int]], seed: int) -> str:
+    """Random DNA holding NUMT-like copies (~8% mutated) of the rCRS MT-RNR2 at ``sites`` (pos, strand)."""
+    from Bio.Seq import Seq
+
+    rng = random.Random(seed)
+    rnr2 = str(SeqIO.read(str(RCRS), "fasta").seq).upper()[1670:3229]
+    seq = list(_random_dna(length, seed))
+    for pos, strand in sites:
+        frag = rnr2 if strand == 1 else str(Seq(rnr2).reverse_complement())
+        frag = "".join(c if rng.random() > 0.08 else rng.choice("ACGT") for c in frag)
+        seq[pos : pos + len(frag)] = frag
+    return "".join(seq)[:length]
+
+
+def test_windowed_locus_search_equals_the_whole_record_search(monkeypatch):
+    """A long record is searched in owned windows; the domains must be those of one whole search.
+
+    Copies straddle the window borders and sit at the edges of the overlaps, on both strands: each
+    must be reported once, whole, with its score, and in nhmmer's order.
+    """
+    from humanin_finder import core
+
+    monkeypatch.setattr(core, "NHMMER_WINDOW_BP", 100_000)
+    sites = [(99_200, 1), (110_500, -1), (189_500, 1), (199_300, -1), (250_000, 1), (2_000, 1), (397_000, -1)]
+    seq = _record_with_rnr2_copies(400_000, sites, seed=11)
+    for prof in core.load_locus_profiles().values():
+        whole = core._search_domains(seq, prof["hmm"], prof["evidence_bitscore"])
+        windowed = core._locus_domains(seq, prof["hmm"], prof["evidence_bitscore"])
+        assert len(whole) == len(sites)
+        assert [(d.score, d.alignment) for d in windowed] == [(d.score, d.alignment) for d in whole]
+
+
+def test_threads_do_not_change_the_outputs(tmp_path, monkeypatch):
+    """--threads 2 gives byte-identical outputs to --threads 1, for short records sent whole to the
+    workers and for a long record whose searches are split among them."""
+    from humanin_finder import cli, core
+
+    monkeypatch.setattr(core, "NHMMER_WINDOW_BP", 100_000)
+    monkeypatch.setattr(cli, "NHMMER_WINDOW_BP", 100_000)
+    long_rec = _record_with_rnr2_copies(330_000, [(99_300, 1), (150_000, -1), (260_000, 1)], seed=3)
+    rcrs = str(SeqIO.read(str(RCRS), "fasta").seq)
+    fa = tmp_path / "mixed.fasta"
+    fa.write_text(
+        f">mt1 mitochondrion\n{rcrs}\n>contig\n{long_rec}\n>mt2 mitochondrion\n{rcrs[5000:] + rcrs[:5000]}\n"
+        f">short\n{_random_dna(3_000, 9)}\n"
+    )
+    outputs = {}
+    for n in (1, 2):
+        prefix = tmp_path / f"t{n}"
+        result = CliRunner().invoke(main, ["scan", "-i", str(fa), "-o", str(prefix), "--threads", str(n)])
+        assert result.exit_code == 0, result.output
+        table = [line for line in result.output.splitlines() if " | " in line]
+        outputs[n] = [table] + [
+            (tmp_path / f"t{n}_results.{ext}").read_bytes() for ext in ("csv", "fasta", "gff3", "bed")
+        ]
+    assert outputs[1] == outputs[2]
+    assert b"contig" in outputs[1][1] and b"mt1" in outputs[1][1]

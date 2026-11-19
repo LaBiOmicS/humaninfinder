@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import sys
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -16,9 +17,11 @@ from Bio import SeqIO
 
 from . import __version__
 from .core import (
+    NHMMER_WINDOW_BP,
     STATUS_COMPLETE,
     STATUS_INTERRUPTED,
     calculate_overlap,
+    clear_search_cache,
     find_sorfs,
     get_gathering_threshold,
     guided_evolutionary_rescue,
@@ -26,6 +29,7 @@ from .core import (
     locus_gap_report,
     mdp_display_name,
     run_hmm_search_pyhmmer,
+    search_workers,
 )
 from .fasta_lint import LintOptions, lint_fasta, open_fasta_text
 from .shlp import annotate_shlps
@@ -395,6 +399,207 @@ def _annotate_evidence(cand: dict[str, Any], gathering: float) -> None:
     cand["evidence_tier"] = "E1" if syn_ok or hmm_ok else None
 
 
+def _process_record(
+    rec_id: str,
+    description: str,
+    full_seq: str,
+    requested_tables: list[int],
+    enable_hmm: bool,
+    enable_rescue: bool,
+    enable_shlp: bool,
+    enable_synteny: bool,
+    circular: bool,
+    all_candidates: bool,
+) -> tuple[list[str], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Search one record: (console lines, reported rows, start-codon gap rows).
+
+    Runs in a worker process (records up to ``NHMMER_WINDOW_BP``) or in the main one (longer
+    records, whose searches ``search_workers`` spreads over the workers); either way the result is
+    the same.
+    """
+    lines: list[str] = []
+    selected: list[dict[str, Any]] = []
+    gap_rows: list[dict[str, Any]] = []
+    gathering = get_gathering_threshold()
+    multi_table = len(requested_tables) > 1
+    try:
+        seq_len = len(full_seq)
+        is_large_genome = seq_len > LARGE_SEQUENCE_BP
+        # Only mitogenome-sized records are read as circular molecules
+        record_circular = circular and not is_large_genome
+        table_ids = requested_tables or [auto_genetic_code(description, seq_len)]
+
+        if is_large_genome and not (enable_hmm or enable_synteny):
+            lines.append(
+                f"{rec_id:<22} | [!] Skipped: sequences > {LARGE_SEQUENCE_BP} bp are scanned through the "
+                "synteny profile or the HMM-gated locus zoom; enable --synteny or --hmm."
+            )
+            return lines, selected, gap_rows
+
+        candidates: list[dict[str, Any]] = []
+        all_hmm_hits: list[dict[str, Any]] = []
+
+        for t_id in table_ids:
+            suffix = f"_T{t_id}" if multi_table else ""
+
+            # 1. In-memory HMM search via chunked pyhmmer
+            hmm_hits = []
+            if enable_hmm:
+                hmm_hits = run_hmm_search_pyhmmer(full_seq, table=t_id)
+                for h in hmm_hits:
+                    h["table"] = t_id
+                all_hmm_hits.extend(hmm_hits)
+
+            # Humanin loci by their position in MT-RNR2 (multi-clade locus profile): the mitochondrial
+            # locus and, in large records, every NUMT copy above the evidence threshold
+            if enable_synteny:
+                candidates.extend(
+                    _make_candidate(rec_id, locus, t_id, suffix, "Synteny")
+                    for locus in locate_humanin_loci(full_seq, table=t_id, circular=record_circular)
+                )
+
+            if is_large_genome:
+                # Two-stage HMM-gated locus zoom for nuclear chromosomes / large contigs. Only
+                # domains at the Pfam gathering threshold open a locus: sub-GA hits occur in random
+                # sequence (~1 per Mb).
+                gate_hits = [h for h in hmm_hits if h["score"] >= gathering]
+                if not gate_hits:
+                    continue
+                candidate_regions = _merge_regions(
+                    [
+                        (max(0, h["dna_start"] - LOCUS_ZOOM_PAD_BP), min(seq_len, h["dna_end"] + LOCUS_ZOOM_PAD_BP))
+                        for h in gate_hits
+                    ]
+                )
+
+                raw_sorfs = []
+                for reg_start, reg_end in candidate_regions:
+                    for s in find_sorfs(full_seq[reg_start:reg_end], table=t_id, circular=False):
+                        s["start"] += reg_start
+                        s["end"] += reg_start
+                        raw_sorfs.append(s)
+                sorf_mode = "Scan_Zoom"
+            else:
+                # Standard comprehensive scan for mitochondrial genomes (<= 50 kb)
+                raw_sorfs = find_sorfs(full_seq, table=t_id, circular=circular)
+                sorf_mode = "Scan"
+
+            rescued_peps = []
+            if enable_rescue and hmm_hits:
+                rescue_hits = hmm_hits
+                if is_large_genome:
+                    rescue_hits = [
+                        h
+                        for h in hmm_hits
+                        if any(lo <= h["dna_start"] and h["dna_end"] <= hi for lo, hi in candidate_regions)
+                    ]
+                rescued_peps = guided_evolutionary_rescue(full_seq, rescue_hits, table=t_id)
+
+            candidates.extend(_make_candidate(rec_id, s, t_id, suffix, sorf_mode) for s in raw_sorfs)
+            candidates.extend(_make_candidate(rec_id, r, t_id, suffix, "Rescue") for r in rescued_peps)
+
+        # 2. Link candidates with the best overlapping HMM domain
+        if candidates:
+            for cand in candidates:
+                c_start, c_end = cand["start_0based"], cand["end_0based"]
+                overlapping = [
+                    h
+                    for h in all_hmm_hits
+                    if h["strand"] == cand["strand"]
+                    and h.get("table") == cand["genetic_code"]
+                    and calculate_overlap(c_start, c_end, h["dna_start"], h["dna_end"]) > 0
+                ]
+                if overlapping:
+                    best_hmm = max(overlapping, key=lambda h: h["score"])
+                    if cand.get("hmm_bitscore") is None or best_hmm["score"] > cand["hmm_bitscore"]:
+                        cand["hmm_bitscore"] = float(best_hmm["score"])
+                        cand["hmm_evalue"] = float(best_hmm["e_value"])
+                _annotate_evidence(cand, gathering)
+
+        # 3. Non-redundant filtering
+        nr_cands = filter_non_redundant(candidates)
+
+        # 4. SHLP1–6 by their MT-RNR2 position, each under its translation table (Table 1; shlp_references.json)
+        shlp_rows: list[dict[str, Any]] = []
+        if enable_shlp and enable_synteny:
+            # A start codon inside a deletion or an assembly gap yields no frame, so the peptide
+            # is absent from the table. Record that, or it cannot be told from a missing locus.
+            for gap in locus_gap_report(full_seq, circular=record_circular):
+                gap_rows.append({"sample_id": rec_id, **gap})
+            for sh in annotate_shlps(full_seq, circular=record_circular):
+                shlp_rows.append(
+                    {
+                        "sample_id": rec_id,
+                        "name": sh["name"],
+                        "status": sh["status"],
+                        "seq": sh["seq"],
+                        "length": sh["length"],
+                        "strand": sh["strand"],
+                        "frame": sh["frame"],
+                        "start_0based": sh["start"],
+                        "end_0based": sh["end"],
+                        "start_1based": sh["start"] + 1,
+                        "end_1based": sh["end"],
+                        "circular_wrap": sh["circular_wrap"],
+                        "hmm_bitscore": None,
+                        "hmm_evalue": None,
+                        "hmm_supported": False,
+                        "synteny_score": sh["synteny_score"],
+                        "locus_profile": sh["locus_profile"],
+                        "locus_density": sh["locus_density"],
+                        "start_offset_codons": sh["start_offset_codons"],
+                        "evidence_source": "Synteny",
+                        "evidence_tier": sh["evidence_tier"],
+                        "reference_evidence_tier": sh["reference_evidence_tier"],
+                        "identity_to_reference": sh["identity_to_reference"],
+                        "genetic_code": sh["translation_table"],
+                        "locus_mode": "Synteny",
+                        "table_1_pep": "",
+                    }
+                )
+
+        reportable = [c for c in nr_cands if c["evidence_source"]]
+
+        if not reportable and not shlp_rows:
+            lines.append(f"{rec_id:<22} | >> No candidate sORFs detected.")
+            return lines, selected, gap_rows
+
+        # 5. Selection of candidates to report
+        if all_candidates:
+            selected.extend(reportable)
+        else:
+            # Primary hit: best Humanin candidate per table
+            for t_id in table_ids:
+                hn_cands_t = [c for c in reportable if c["genetic_code"] == t_id]
+                if hn_cands_t:
+                    selected.append(
+                        max(
+                            hn_cands_t,
+                            key=lambda x: (
+                                1.0 if x.get("synteny_score") is not None else 0.0,
+                                1.0 if x["hmm_supported"] else 0.0,
+                                STATUS_RANK.get(x["status"], 0.0),
+                                x.get("hmm_bitscore") or 0.0,
+                            ),
+                        )
+                    )
+        selected.extend(shlp_rows)
+
+        for cand in selected:
+            cand["seq_length"] = seq_len
+            cand["seq_circular"] = record_circular
+            coords = f"{cand['start_1based']}-{cand['end_1based']}"
+            lines.append(
+                f"{rec_id:<22} | {cand.get('name', 'Humanin'):<22} | {cand['status']:<12} | "
+                f"{coords:<18} | {_fmt(cand.get('synteny_score'), '<10.0f', '-' * 10)} | "
+                f"{_fmt(cand.get('hmm_bitscore'), '.1f', '-')}"
+            )
+
+        return lines, selected, gap_rows
+    finally:
+        clear_search_cache()
+
+
 def run_pipeline(
     fasta_path: Path,
     output_prefix: str,
@@ -405,8 +610,12 @@ def run_pipeline(
     circular: bool = False,
     all_candidates: bool = False,
     enable_synteny: bool = True,
+    threads: int = 1,
 ) -> list[dict[str, Any]]:
     """End-to-end execution of the HumaninFinder pipeline.
+
+    ``threads``: worker processes for the searches (``core.search_workers``); the outputs do not
+    depend on it.
 
     A Humanin frame is reported when it lies at a Humanin locus located by its MT-RNR2 position
     (synteny profiles) or carries a PF15040 domain at the gathering threshold (``_annotate_evidence``).
@@ -421,8 +630,6 @@ def run_pipeline(
 
     click.echo(f"[*] HumaninFinder v{__version__}: {' '.join(sys.argv)}")
     click.echo(f"[*] Processing sequences from {fasta_path}...")
-    gathering = get_gathering_threshold()
-
     click.echo(f"\n{'-' * 101}")
     hdr = (
         f"{'Sequence ID':<22} | {'Peptide':<22} | {'Status':<12} | "
@@ -432,189 +639,44 @@ def run_pipeline(
     click.echo(f"{'-' * 101}")
 
     requested_tables = parse_genetic_codes(table)
-    multi_table = len(requested_tables) > 1
 
     all_accepted_results: list[dict[str, Any]] = []
 
     gap_rows: list[dict[str, Any]] = []
 
-    with open_fasta_text(fasta_path) as handle:
+    def emit(result: tuple[list[str], list[dict[str, Any]], list[dict[str, Any]]]) -> None:
+        lines, rows, gaps = result
+        for line in lines:
+            click.echo(line)
+        all_accepted_results.extend(rows)
+        gap_rows.extend(gaps)
+
+    record_options = (
+        requested_tables,
+        enable_hmm,
+        enable_rescue,
+        enable_shlp,
+        enable_synteny,
+        circular,
+        all_candidates,
+    )
+    with search_workers(threads) as pool, open_fasta_text(fasta_path) as handle:
+        # Records are reported in input order. Short records go to the workers whole; before a long
+        # one is searched (its pieces spread over the same workers), the queue is emptied.
+        pending: deque[Any] = deque()
         for record in SeqIO.parse(handle, "fasta"):
-            rec_id = str(record.id)
-            full_seq = str(record.seq).upper()
-            seq_len = len(full_seq)
-            is_large_genome = seq_len > LARGE_SEQUENCE_BP
-            # Only mitogenome-sized records are read as circular molecules
-            record_circular = circular and not is_large_genome
-            table_ids = requested_tables or [auto_genetic_code(record.description, seq_len)]
-
-            if is_large_genome and not (enable_hmm or enable_synteny):
-                click.echo(
-                    f"{rec_id:<22} | [!] Skipped: sequences > {LARGE_SEQUENCE_BP} bp are scanned through the "
-                    "synteny profile or the HMM-gated locus zoom; enable --synteny or --hmm."
-                )
+            rec_id, description, full_seq = str(record.id), record.description, str(record.seq).upper()
+            del record
+            if pool is not None and len(full_seq) <= NHMMER_WINDOW_BP:
+                pending.append(pool.submit(_process_record, rec_id, description, full_seq, *record_options))
+                while len(pending) > 2 * threads:
+                    emit(pending.popleft().result())
                 continue
-
-            candidates: list[dict[str, Any]] = []
-            all_hmm_hits: list[dict[str, Any]] = []
-
-            for t_id in table_ids:
-                suffix = f"_T{t_id}" if multi_table else ""
-
-                # 1. In-memory HMM search via chunked pyhmmer
-                hmm_hits = []
-                if enable_hmm:
-                    hmm_hits = run_hmm_search_pyhmmer(full_seq, table=t_id)
-                    for h in hmm_hits:
-                        h["table"] = t_id
-                    all_hmm_hits.extend(hmm_hits)
-
-                # Humanin loci by their position in MT-RNR2 (multi-clade locus profile): the mitochondrial
-                # locus and, in large records, every NUMT copy above the evidence threshold
-                if enable_synteny:
-                    candidates.extend(
-                        _make_candidate(rec_id, locus, t_id, suffix, "Synteny")
-                        for locus in locate_humanin_loci(full_seq, table=t_id, circular=record_circular)
-                    )
-
-                if is_large_genome:
-                    # Two-stage HMM-gated locus zoom for nuclear chromosomes / large contigs. Only
-                    # domains at the Pfam gathering threshold open a locus: sub-GA hits occur in random
-                    # sequence (~1 per Mb).
-                    gate_hits = [h for h in hmm_hits if h["score"] >= gathering]
-                    if not gate_hits:
-                        continue
-                    candidate_regions = _merge_regions(
-                        [
-                            (max(0, h["dna_start"] - LOCUS_ZOOM_PAD_BP), min(seq_len, h["dna_end"] + LOCUS_ZOOM_PAD_BP))
-                            for h in gate_hits
-                        ]
-                    )
-
-                    raw_sorfs = []
-                    for reg_start, reg_end in candidate_regions:
-                        for s in find_sorfs(full_seq[reg_start:reg_end], table=t_id, circular=False):
-                            s["start"] += reg_start
-                            s["end"] += reg_start
-                            raw_sorfs.append(s)
-                    sorf_mode = "Scan_Zoom"
-                else:
-                    # Standard comprehensive scan for mitochondrial genomes (<= 50 kb)
-                    raw_sorfs = find_sorfs(full_seq, table=t_id, circular=circular)
-                    sorf_mode = "Scan"
-
-                rescued_peps = []
-                if enable_rescue and hmm_hits:
-                    rescue_hits = hmm_hits
-                    if is_large_genome:
-                        rescue_hits = [
-                            h
-                            for h in hmm_hits
-                            if any(lo <= h["dna_start"] and h["dna_end"] <= hi for lo, hi in candidate_regions)
-                        ]
-                    rescued_peps = guided_evolutionary_rescue(full_seq, rescue_hits, table=t_id)
-
-                candidates.extend(_make_candidate(rec_id, s, t_id, suffix, sorf_mode) for s in raw_sorfs)
-                candidates.extend(_make_candidate(rec_id, r, t_id, suffix, "Rescue") for r in rescued_peps)
-
-            # 2. Link candidates with the best overlapping HMM domain
-            if candidates:
-                for cand in candidates:
-                    c_start, c_end = cand["start_0based"], cand["end_0based"]
-                    overlapping = [
-                        h
-                        for h in all_hmm_hits
-                        if h["strand"] == cand["strand"]
-                        and h.get("table") == cand["genetic_code"]
-                        and calculate_overlap(c_start, c_end, h["dna_start"], h["dna_end"]) > 0
-                    ]
-                    if overlapping:
-                        best_hmm = max(overlapping, key=lambda h: h["score"])
-                        if cand.get("hmm_bitscore") is None or best_hmm["score"] > cand["hmm_bitscore"]:
-                            cand["hmm_bitscore"] = float(best_hmm["score"])
-                            cand["hmm_evalue"] = float(best_hmm["e_value"])
-                    _annotate_evidence(cand, gathering)
-
-            # 3. Non-redundant filtering
-            nr_cands = filter_non_redundant(candidates)
-
-            # 4. SHLP1–6 by their MT-RNR2 position, each under its translation table (Table 1; shlp_references.json)
-            shlp_rows: list[dict[str, Any]] = []
-            if enable_shlp and enable_synteny:
-                # A start codon inside a deletion or an assembly gap yields no frame, so the peptide
-                # is absent from the table. Record that, or it cannot be told from a missing locus.
-                for gap in locus_gap_report(full_seq, circular=record_circular):
-                    gap_rows.append({"sample_id": rec_id, **gap})
-                for sh in annotate_shlps(full_seq, circular=record_circular):
-                    shlp_rows.append(
-                        {
-                            "sample_id": rec_id,
-                            "name": sh["name"],
-                            "status": sh["status"],
-                            "seq": sh["seq"],
-                            "length": sh["length"],
-                            "strand": sh["strand"],
-                            "frame": sh["frame"],
-                            "start_0based": sh["start"],
-                            "end_0based": sh["end"],
-                            "start_1based": sh["start"] + 1,
-                            "end_1based": sh["end"],
-                            "circular_wrap": sh["circular_wrap"],
-                            "hmm_bitscore": None,
-                            "hmm_evalue": None,
-                            "hmm_supported": False,
-                            "synteny_score": sh["synteny_score"],
-                            "locus_profile": sh["locus_profile"],
-                            "locus_density": sh["locus_density"],
-                            "start_offset_codons": sh["start_offset_codons"],
-                            "evidence_source": "Synteny",
-                            "evidence_tier": sh["evidence_tier"],
-                            "reference_evidence_tier": sh["reference_evidence_tier"],
-                            "identity_to_reference": sh["identity_to_reference"],
-                            "genetic_code": sh["translation_table"],
-                            "locus_mode": "Synteny",
-                            "table_1_pep": "",
-                        }
-                    )
-
-            reportable = [c for c in nr_cands if c["evidence_source"]]
-
-            if not reportable and not shlp_rows:
-                click.echo(f"{rec_id:<22} | >> No candidate sORFs detected.")
-                continue
-
-            # 5. Selection of candidates to report
-            if all_candidates:
-                selected = list(reportable)
-            else:
-                # Primary hit: best Humanin candidate per table
-                selected = []
-                for t_id in table_ids:
-                    hn_cands_t = [c for c in reportable if c["genetic_code"] == t_id]
-                    if hn_cands_t:
-                        selected.append(
-                            max(
-                                hn_cands_t,
-                                key=lambda x: (
-                                    1.0 if x.get("synteny_score") is not None else 0.0,
-                                    1.0 if x["hmm_supported"] else 0.0,
-                                    STATUS_RANK.get(x["status"], 0.0),
-                                    x.get("hmm_bitscore") or 0.0,
-                                ),
-                            )
-                        )
-            selected.extend(shlp_rows)
-
-            for cand in selected:
-                cand["seq_length"] = seq_len
-                cand["seq_circular"] = record_circular
-                coords = f"{cand['start_1based']}-{cand['end_1based']}"
-                click.echo(
-                    f"{rec_id:<22} | {cand.get('name', 'Humanin'):<22} | {cand['status']:<12} | "
-                    f"{coords:<18} | {_fmt(cand.get('synteny_score'), '<10.0f', '-' * 10)} | "
-                    f"{_fmt(cand.get('hmm_bitscore'), '.1f', '-')}"
-                )
-                all_accepted_results.append(cand)
+            while pending:
+                emit(pending.popleft().result())
+            emit(_process_record(rec_id, description, full_seq, *record_options))
+        while pending:
+            emit(pending.popleft().result())
 
     write_deterministic_outputs(all_accepted_results, output_prefix)
     if gap_rows:
@@ -632,6 +694,7 @@ def run_pipeline(
             "synteny": enable_synteny,
             "circular": circular,
             "all_candidates": all_candidates,
+            "threads": threads,
         },
         len(all_accepted_results),
         gap_rows=len(gap_rows),
@@ -682,6 +745,15 @@ def _pipeline_options(func):
             help="Enable/disable location of Humanin loci by their MT-RNR2 position (multi-clade locus profile).",
         ),
         click.option("--circular", is_flag=True, help="Enable circular chromosome wrap-around search."),
+        click.option(
+            "--threads",
+            type=click.IntRange(min=1),
+            default=1,
+            show_default=True,
+            help="Worker processes. Records up to 1 Mb are searched in parallel, and the HMM and "
+            "MT-RNR2 searches of longer ones (chromosomes) are split among the workers. Outputs do not "
+            "depend on this number.",
+        ),
     ]
     for option in reversed(options):
         func = option(func)
@@ -709,6 +781,7 @@ def predict(
     shlp,
     synteny,
     circular,
+    threads,
     all_candidates,
 ):
     """Predict and annotate Humanin and SHLPs in target mitochondrial sequences (best hit per table)."""
@@ -722,6 +795,7 @@ def predict(
         circular=circular,
         all_candidates=all_candidates,
         enable_synteny=synteny,
+        threads=threads,
     )
 
 
@@ -741,6 +815,7 @@ def scan(
     shlp,
     synteny,
     circular,
+    threads,
     all_candidates,
 ):
     """Scan whole mitogenomes, contigs, or nuclear genomes (NUMTs), reporting every locus."""
@@ -754,6 +829,7 @@ def scan(
         circular=circular,
         all_candidates=all_candidates,
         enable_synteny=synteny,
+        threads=threads,
     )
 
 
