@@ -483,7 +483,7 @@ metadata are in [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" 
 
 ```bibtex
 @software{humaninfinder,
-  author  = {Menegidio, Fabiano Bezerra and {LaBiOmicS}},
+  author  = {{LaBiOmicS -- Laboratory of Bioinformatics and Omics Sciences, University of Mogi das Cruzes}},
   title   = {{HumaninFinder}: homology-first location and annotation of Humanin and SHLP1-6},
   version = {1.0.0b5},
   year    = {2026},
